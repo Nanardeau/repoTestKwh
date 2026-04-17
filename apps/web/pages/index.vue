@@ -19,22 +19,28 @@
       <UBadge color="primary" variant="soft">
         
         <h1 class="text-lg">Surface totale : {{ surfaceTotale.toFixed(2) }} m²</h1>
+        <h1 class="text-lg">Volume total : {{ volumeTotal.toFixed(2) }} m<sup>3</sup></h1>
       </UBadge>
     </div>
     <div class="w-5/6">
       <SmplrViewer :space-id="spaceId" @mounted="setupIdList" @ready="onReady" />
     </div>
+    <UBadge color="primary">
+      <p>{{ idPieces }}</p>
+    </UBadge>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { QueryClient, RoomWithHoles, Smplr, SmplrCoord3d, Space } from '@smplrspace/smplr-loader';
-const spaceId = ref<string>('spc_c8u5tvfx');
-  const clientToken = ref<string>('pub_5e459d2d172140c69f966900315f1286');
-    const idList = ref<{ value: string, name: string }[]>([]);
-    const isPickingActivated = ref<boolean>(false);
-      const isMultiSelctingActivated = ref<boolean>(false);
-        const isMeasuringActivated = ref<boolean>(false);
+import { useRoute } from "vue-router";
+//spc_c8u5tvfx
+const spaceId = ref<string>('spc_cx1svr5x');
+//const clientToken = ref<string>('pub_5e459d2d172140c69f966900315f1286');
+const idList = ref<{ value: string, name: string }[]>([]);
+const isPickingActivated = ref<boolean>(false);
+const isMultiSelctingActivated = ref<boolean>(false);
+const isMeasuringActivated = ref<boolean>(false);
           
 const toast = useToast();
 
@@ -43,9 +49,12 @@ const vraiQuery = ref<QueryClient>;
 const queryClient = ref<QueryClient | null>(null);
 const surface = ref<number>(0);
 const surfaceTotale = ref<number>(0);
+const volumeTotal = ref<number>(0);
 const selectedRooms = ref<Set<RoomWithHoles>>(new Set([]));
 const allRooms = ref<Set<RoomWithHoles>>(new Set([]));
-  
+const idPieces = await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false});
+
+
 function togglePicking() {
   /**
    * Toggle the picking mode
@@ -149,6 +158,8 @@ function getGlobalSurface(spaceId:string){
           queryClient.value?.getRoomsOnLevel({spaceId:spaceId, levelIndex:etage.index}).then((rooms) => {
             rooms?.forEach((room) => {
               surfaceTotale.value += totalSurfaceReducer(0, room);
+              console.log(room.room[0]);
+              volumeTotal.value += totalSurfaceReducer(0, room) * 2.50;
             })
           });
 
@@ -159,6 +170,8 @@ function getGlobalSurface(spaceId:string){
   }
 
 }
+
+
 function onReady({ space: s, queryClient: q }: {queryClient: QueryClient, space: Space, client: Smplr}) {
   /**
    * Set the space and queryClient values
