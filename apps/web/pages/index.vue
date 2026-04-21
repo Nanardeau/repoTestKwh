@@ -55,7 +55,7 @@ const surfaceTotale = ref<number>(0);
 const volumeTotal = ref<number>(0);
 const selectedRooms = ref<Set<RoomWithHoles>>(new Set([]));
 const idPieces = ref<any>();
-
+const idLotsQuery = ref<Array<any>>();
 const idListLots = ref<{value: string, name:string}[]>([]);
 //<{ value: string, name: string }[]>([]);
 
@@ -166,9 +166,11 @@ async function setupIdList({ queryClient }: {queryClient: QueryClient, space: Sp
 
 async function setupListLot(){
 
-  idListLots.value = await $fetch(`/api/lot/lots/space/${spaceId.value}`, {method:"GET"});
-  idListLots.value = idListLots.value.map((lot) => ({value:lot["idlot"], name:lot["numlot"]}));
-  idListLots.value.push({value: "tous", name:"Tous"});
+  idLotsQuery.value = await $fetch(`/api/lot/lots/space/${spaceId.value}`, {method:"GET"});
+  if(idLotsQuery.value){
+    idListLots.value = idLotsQuery.value.map((lot) => ({value:lot.value["idlot"], name:lot["numlot"]}));
+    idListLots.value.push({value: "tous", name:"Tous"});
+  }
 //.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
 
 }
@@ -235,7 +237,7 @@ function getGlobalSurface(spaceId:string){
 
 }
 
-function estUnePiece(coordonneesSalle: Object){
+function estUnePiece(coordonneesSalle: Array<any>){
   let res = false;
   /*
   * Je fais trop de boucles : pour chaque salle je regarde pour chaque pièce dans la bdd si les coordonnées correspondent ou pas
@@ -243,7 +245,8 @@ function estUnePiece(coordonneesSalle: Object){
 
 
 //  let data = idPieces.value["data"][3]["asset"]["coordinates"][0];
-  let data = idPieces.value["data"];
+  let data = new Array<any>(); 
+  data = idPieces.value["data"];
   
   data.forEach((pieceBdd) => {
     // Je compare les coordonnées du PREMIER POINT de la salle
