@@ -2,10 +2,12 @@
   <div class="flex flex-col items-center justify-around h-screen">
     <div class="flex items-center gap-5">
       <UBadge color="primary" variant="soft">
-        <h1 class="text-lg">Surface : {{ surface.toFixed(2) }} m²</h1>
+        <h1 class="text-lg">Surface sélectionnée : {{ surface.toFixed(2) }} m²</h1>
       </UBadge>
+      
+      <USelect v-model="spaceId" :options="idList" option-attribute="name" placeholder="Chargement ..." @change="afficherSpaceId"/>
+      <USelect v-model="idLot" :options="idListLots" option-attribute="name" placeholder="Numéro de lot" @change="colorerLot"/>
 
-      <USelect v-model="spaceId" :options="idList" option-attribute="name" placeholder="Chargement ..." />
       <UButton :color="isPickingActivated ? 'red' : 'green'" :disabled="space === null && queryClient === null" @click="togglePicking">
         {{ isPickingActivated ? "Désactiver le picking mode" : "Activer le picking" }}
       </UButton>
@@ -13,7 +15,7 @@
       <UButton :disabled="space === null && queryClient === null" :color="isMeasuringActivated ? 'red' : 'green'" @click="measure">
         {{ isMeasuringActivated ? "Désactiver la règle" : "Activer la règle" }}
       </UButton>
-      <UButton :color="'green'" @click="getGlobalSurface(spaceId)">
+      <UButton :color="'green'" @click=""> <!-- colorerLot('lot_wrRRGnvdGZvY7YD') -->
         {{ "Bouton test" }}
       </UButton>
       <UBadge color="primary" variant="soft">
@@ -26,7 +28,7 @@
       <SmplrViewer :space-id="spaceId" @mounted="setupIdList" @ready="onReady" />
     </div>
     <UBadge color="primary">
-      <p>{{ idPieces }}</p>
+      <p>{{ "Lots : " + idListLots }}</p>
     </UBadge>
   </div>
 </template>
@@ -35,13 +37,14 @@
 import type { QueryClient, RoomWithHoles, Smplr, SmplrCoord3d, Space } from '@smplrspace/smplr-loader';
 import { useRoute } from "vue-router";
 //spc_c8u5tvfx
-const spaceId = ref<string>('spc_cx1svr5x');
+//spc_cx1svr5x
+const spaceId = ref<string>('spc_c8u5tvfx');
 //const clientToken = ref<string>('pub_5e459d2d172140c69f966900315f1286');
 const idList = ref<{ value: string, name: string }[]>([]);
 const isPickingActivated = ref<boolean>(false);
 const isMultiSelctingActivated = ref<boolean>(false);
 const isMeasuringActivated = ref<boolean>(false);
-          
+
 const toast = useToast();
 
 const space = ref<Space | null>(null);
@@ -51,10 +54,26 @@ const surface = ref<number>(0);
 const surfaceTotale = ref<number>(0);
 const volumeTotal = ref<number>(0);
 const selectedRooms = ref<Set<RoomWithHoles>>(new Set([]));
-const allRooms = ref<Set<RoomWithHoles>>(new Set([]));
-const idPieces = await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false});
+const idPieces = ref<any>();
+
+const idListLots = ref<{value: string, name:string}[]>([]);
+//<{ value: string, name: string }[]>([]);
+
+const idLot = ref<string>('tous');
+colorerLot();
+
+const coloredRooms = ref(new Set([]));
 
 
+
+async function afficherSpaceId(){
+  idPieces.value = await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false});
+  console.log("IDPIECE TYPE" + idPieces.value.type);
+
+  surfaceTotale.value = 0;
+  volumeTotal.value = 0;
+
+}
 function togglePicking() {
   /**
    * Toggle the picking mode
@@ -144,6 +163,50 @@ async function setupIdList({ queryClient }: {queryClient: QueryClient, space: Sp
    */
   idList.value = (await queryClient.listSpaces()).map((space) => ({ value: space.sid, name: space.name }));
 }
+
+async function setupListLot(){
+
+  idListLots.value = await $fetch(`/api/lot/lots/space/${spaceId.value}`, {method:"GET"});
+  idListLots.value = idListLots.value.map((lot) => ({value:lot["idlot"], name:lot["numlot"]}));
+  idListLots.value.push({value: "tous", name:"Tous"});
+//.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
+
+}
+
+async function colorerLot(){
+  coloredRooms.value = new Set([]);
+  for(let i = 0 ; i < idListLots.value.length ; i++){
+    space.value!.removeDataLayer('lots' +i);
+
+  }
+  if(idLot.value != "tous"){
+    coloredRooms.value = await $fetch(`/api/piece/lots/${idLot.value}`, {method:"GET"});    
+    space.value!.addPolygonDataLayer({
+      id : 'lot',
+      data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"]})),
+      color:'yellow',
+      alpha:0.5,
+    }); 
+  }
+  else{
+    space.value!.removeDataLayer('lot');
+    coloredRooms.value = new Set([]);
+    for(let i = 0 ; i < idListLots.value.length -1 ; i++){
+      coloredRooms.value = (await $fetch(`/api/piece/lots/${idListLots.value[i].value}`, {method:"GET"}));
+      let couleur = i % 2 == 0 ? 'blue' : 'green';    
+      space.value!.addPolygonDataLayer({
+        id : 'lots'+i,
+        data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"]})),
+        color: couleur,
+        alpha:0.5,
+    }); 
+    }
+  }
+
+  
+}
+
+
 function getGlobalSurface(spaceId:string){
   /*
   Essayer de récupérer toutes les rooms, utiliser totalSurfaceReducer pour chaque Room dans la liste des rooms de tous les étages.
@@ -151,15 +214,16 @@ function getGlobalSurface(spaceId:string){
   */
 
   if(queryClient.value){
-    console.log("c'est bon");
     queryClient.value.getSpaceLevels(spaceId).then((levels) => {
       levels.forEach((etage) => {
         if(etage.index != levels.length - 1){ //Comparaison pour ne pas compter le toit (dernier étage)
           queryClient.value?.getRoomsOnLevel({spaceId:spaceId, levelIndex:etage.index}).then((rooms) => {
             rooms?.forEach((room) => {
-              surfaceTotale.value += totalSurfaceReducer(0, room);
-              console.log(room.room[0]);
-              volumeTotal.value += totalSurfaceReducer(0, room) * 2.50;
+              if(estUnePiece(room.coordinates[0])){
+                surfaceTotale.value += totalSurfaceReducer(0, room);
+                volumeTotal.value += totalSurfaceReducer(0, room) * 2.50;
+              }
+
             })
           });
 
@@ -171,15 +235,39 @@ function getGlobalSurface(spaceId:string){
 
 }
 
+function estUnePiece(coordonneesSalle: Object){
+  let res = false;
+  /*
+  * Je fais trop de boucles : pour chaque salle je regarde pour chaque pièce dans la bdd si les coordonnées correspondent ou pas
+  */
 
-function onReady({ space: s, queryClient: q }: {queryClient: QueryClient, space: Space, client: Smplr}) {
+
+//  let data = idPieces.value["data"][3]["asset"]["coordinates"][0];
+  let data = idPieces.value["data"];
+  
+  data.forEach((pieceBdd) => {
+    // Je compare les coordonnées du PREMIER POINT de la salle
+    if(pieceBdd["asset"]["coordinates"][0][0]["x"] == coordonneesSalle[0]["x"] && pieceBdd["asset"]["coordinates"][0][0]["y"] == coordonneesSalle[0]["y"] && pieceBdd["asset"]["coordinates"][0][0]["levelIndex"] == coordonneesSalle[0]["levelIndex"] ){
+      res = true;
+    }
+  })
+  return res;
+    // console.log("DATA ASSET COORD "+ data["asset"]["coordinates"][0]);
+    // console.log("COORDO SALLE "+coordonneesSalle);
+
+}
+async function onReady({ space: s, queryClient: q }: {queryClient: QueryClient, space: Space, client: Smplr}) {
   /**
    * Set the space and queryClient values
    */
   space.value = s;
   queryClient.value = q;
+  idPieces.value = await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false});
+  setupListLot();
+
   getGlobalSurface(spaceId.value);
 
+  
 }
 
 function totalSurfaceReducer(acc: number, room: RoomWithHoles) {
