@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col items-center justify-around h-screen">
-    <Stats v-model:open="openModal"/>
-    <UButton label="Open" color="primary" variant="soft" click="openModalFunc" />
+    <Stats/>
+    
 
     <div class="flex items-center gap-5">
       <UBadge color="primary" variant="soft">
