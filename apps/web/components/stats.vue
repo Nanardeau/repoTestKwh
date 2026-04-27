@@ -1,13 +1,13 @@
   
-    <script lang="ts">
-    const open = ref(false);
-    export default{}
+    <script setup lang="ts">
+    const open = defineModel<boolean>("open", { default: false });
     function openModal(){
       open.value = true;
-      console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+      console.log(open.value);
     }
     </script>
 <template>
+  <UButton label="Open" color="primary" variant="soft" :onClick="openModal"/>
   <UModal 
   v-model:open="open"
   title="Modal with title"
