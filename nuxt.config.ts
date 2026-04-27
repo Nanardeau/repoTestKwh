@@ -9,9 +9,18 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
+      apiBase: process.env.API_BASE,
       SMPLR_CLIENT_TOKEN: process.env.NUXT_SMPLR_CLIENT_TOKEN,
       SMPLR_ORGANIZATION_ID: process.env.NUXT_SMPLR_ORGANIZATION_ID
     }
   },
   modules: ['@nuxt/eslint', '@nuxt/ui'],
+  nitro: {
+  devProxy: {
+    "/api": {
+      target: "http://localhost:3030",
+      changeOrigin: true,
+    },
+    },
+  },
 })

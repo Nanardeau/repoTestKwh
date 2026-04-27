@@ -22,7 +22,7 @@ const config = useRuntimeConfig();
 let space: Space | null = null;
 
 /**
- *? When the component is mounted, create a new space and start the viewer
+ *? When the component is mounted, create a new space and start the viewer     
  */
 onMounted(() => {
   /**
