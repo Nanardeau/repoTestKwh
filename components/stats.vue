@@ -1,24 +1,34 @@
-  
-    <script setup lang="ts">
-    const open = defineModel<boolean>("open", { default: false });
-    function openModal(){
-      open.value = true;
-      console.log(open.value);
-    }
-    </script>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+const open = ref<boolean>(false);
+//const pieceId = defineModel<string>("pieceId", {default : ''});
+
+const props = defineProps(
+  {pieceId: String,
+    name:String
+  }
+)
+const pieceId = ref(props.pieceId);
+</script>
+
 <template>
-  <UButton label="Open" color="primary" variant="soft" :onClick="openModal"/>
+
   <UModal 
   v-model:open="open"
-  title="Modal with title"
-  :close="{
-    color: 'primary',
-    variant: 'outline',
-    class: 'rounded-full'
-  }" 
   >
-    <template #body>
-      <p>abcdefg</p>
+
+    <template #header>
+      <div class="text-lg font-semibold">Pièce {{ props.name }}</div>
     </template>
+    <template #body>
+
+      <span> {{ props.pieceId }} </span><br/>
+      <span class="font-bold"> {{  }}</span><br/>
+      <span class="font-bold">Volume : xx</span>
+      <img src="./faux.png"/>
+
+    </template>
+
   </UModal>
 </template>

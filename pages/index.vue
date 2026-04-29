@@ -1,37 +1,31 @@
 <template>
+  <div class="h-(--ui-header-height) shrink-0 flex items-center px-4 border-b border-default">
+
+  </div>
   <div class="flex flex-col items-center justify-around h-screen">
-    <Stats/>
     
-
+    <Stats :piece-id="pieceIdModale" v-model:open="openModalPiece", :name="pieceNameModale"/>
+    
     <div class="flex items-center gap-5">
-      <UBadge color="primary" variant="soft">
-        <h1 class="text-lg">Surface sélectionnée : {{ surface.toFixed(2) }} m²</h1>
-      </UBadge>
-      
-      <USelect v-model="spaceId" :options="idList" option-attribute="name" placeholder="Chargement ..." @change="afficherSpaceId"/>
-      <USelect v-model="idLot" :options="idListLots" option-attribute="name" placeholder="Numéro de lot" @change="colorerLot"/>
+      <USelect v-model="spaceId" :items="idList"  placeholder="Chargement ..." @change="afficherSpaceId"/>
+      <USelect v-model="idLot" :items="idListLots" placeholder="Numéro de lot" @change="colorerLot"/>
 
-      <UButton :color="isPickingActivated ? 'red' : 'green'" :disabled="space === null && queryClient === null" @click="togglePicking">
+      <UButton :color="isPickingActivated ? 'error' : 'success'" :disabled="space === null && queryClient === null" @click="togglePicking">
         {{ isPickingActivated ? "Désactiver le picking mode" : "Activer le picking" }}
       </UButton>
       <UCheckbox v-model="isMultiSelctingActivated" name="multi-select" label="Selection multiple" />
-      <UButton :disabled="space === null && queryClient === null" :color="isMeasuringActivated ? 'red' : 'green'" @click="measure">
+      <UButton :disabled="space === null && queryClient === null" :color="isMeasuringActivated ? 'error' : 'success'" @click="measure">
         {{ isMeasuringActivated ? "Désactiver la règle" : "Activer la règle" }}
       </UButton>
       <div :style="{display: 'flex', flexDirection:'column'}">
-        <UButton :color="isFurnitureShowing ? 'red' : 'green'" @click="afficherMeubles"> <!-- colorerLot('lot_wrRRGnvdGZvY7YD') -->
+        <UButton :color="isFurnitureShowing ? 'error' : 'success'" @click="essaiHeatMap"> <!-- colorerLot('lot_wrRRGnvdGZvY7YD') -->
           {{ isFurnitureShowing ? "Masquer les meubles" : "Montrer meubles" }}
         </UButton>
         
 
       </div>
-      <UBadge color="primary" variant="soft">
-        <div :style="{ display : 'flex', flexDirection: 'column' }">
-          <h1 class="text-lg">Surface totale : {{ surfaceTotale.toFixed(2) }} m²</h1>
-          <h1 class="text-lg">Volume total : {{ volumeTotal.toFixed(2) }} m<sup>3</sup></h1>
-        </div>
-      </UBadge>
-      <UBadge color="white" variant="soft">
+
+      <!-- <UBadge color="info" variant="soft">
         <div :style="{ display : 'flex', flexDirection: 'column' }">
           <div :style="{ display : 'flex', flexDirection: 'column' }">
             <h1 class="text-lg">Surface lot : {{ surfaceTotaleLot.toFixed(2) }} m²</h1> 
@@ -42,13 +36,22 @@
             <h1 class="text-lg">Volume lvl : {{ volumeTotalLevel.toFixed(2) }} m<sup>3</sup></h1>
           </div>
         </div>
-      </UBadge>
+      </UBadge> -->
+            <UButton
+      icon="i-lucide-panel-left"
+      color="neutral"
+      variant="ghost"
+      aria-label="Toggle sidebar"
+      @click="openSideBar = !openSideBar"
+      >Surfaces-Volumes</UButton>
     </div>
+    <SidebarSurface v-model:open="openSideBar" :surface-totale="surfaceTotale" :volume-total="volumeTotal" :surface-lot="surfaceTotaleLot" :volume-lot="volumeTotalLot" :surface-lvl="surfaceTotaleLevel" :volume-lvl="volumeTotalLevel"/>
     <div class="w-5/6" :style="{display:'flex'}">
+
       <div :style="{ display : 'flex', flexDirection: 'column', alignSelf:'center' }">
-        <UButton :color="'green'" :disabled="currentLevel! == maxLevels!" @click="level('up')"> +1 </UButton>
+        <UButton :color="'success'" :disabled="currentLevel! == maxLevels!" @click="level('up')"> +1 </UButton>
         <p>{{ currentLevelName ? currentLevelName : "" }}</p>
-        <UButton :color="'green'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
+        <UButton :color="'success'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
       </div>
       <SmplrViewer :space-id="spaceId" @mounted="setupIdList" @ready="onReady" />
     </div>
@@ -60,6 +63,7 @@
 
 <script setup lang="ts">
 import Stats from '../components/stats.vue';
+import SidebarSurface from '~/components/sidebarsurface.vue';
 import type { QueryClient, SmplrCoord2d, RoomWithHoles,  Smplr,  SmplrCoord3d,  Space, SpaceLevel} from '@smplrspace/smplr-loader';
 import { useRoute } from "vue-router";
 //spc_c8u5tvfx
@@ -69,7 +73,7 @@ import { useRoute } from "vue-router";
 const smplrRef= ref<Smplr>();
 
 const spaceId = ref<string>('spc_c8u5tvfx');
-const idList = ref<{ value: string, name: string }[]>([]);
+const idList = ref<{ value: string, label: string }[]>([]);
 const isPickingActivated = ref<boolean>(false);
 const isMultiSelctingActivated = ref<boolean>(false);
 const isMeasuringActivated = ref<boolean>(false);
@@ -92,7 +96,7 @@ const volumeTotalLevel = ref<number>(0);
 const selectedRooms = ref<Set<RoomWithHoles>>(new Set([]));
 const idPieces = ref<any>();
 const idLotsQuery = ref<Array<any>>();
-const idListLots = ref<{value: string, name:string}[]>([]);
+const idListLots = ref<{value: string, label:string}[]>([]);
 
 const coloredRooms = ref(new Set([]));
 const idLot = ref<string>('tous');
@@ -105,11 +109,15 @@ const currentLevelName = ref<string>();
 const maxLevels = ref<number>(0);
 const levelNames = ref<Array<string>>([]);
 
-const isHidden = ref<boolean>(true);
+const openSideBar = ref(false);
 
-function openModalFunc(){
-  console.log("cc");
-}
+const openModalPiece = ref(false);
+const pieceIdModale = ref<string>('');
+const pieceNameModale = ref<string>('');
+
+const coordoCapteurs = ref<Array<any>>([]);
+const roomsOnLevel = ref<any>();
+const capteurSeul = ref<any>();
 
 async function afficherSpaceId(){
   console.log(count.value);
@@ -117,6 +125,7 @@ async function afficherSpaceId(){
 
   surfaceTotale.value = 0;
   volumeTotal.value = 0;
+
 
 }
 async function afficherMeubles(){
@@ -144,7 +153,7 @@ async function afficherMeubles(){
             furnitureId:meuble.id,
             levelIndex: meuble.levelIndex,
           }],
-          color:(d) => d.levelIndex == 1 ? 'green' : 'red',
+          color:(d) => d.levelIndex == 1 ? 'success' : 'error',
         });
         //   id: meuble.name,
         //   type: 'point',
@@ -158,7 +167,7 @@ async function afficherMeubles(){
         //   rotation:meuble.rotation,  
         
         // }], 
-        //   color:'red',
+        //   color:'error',
         //   anchor:'center',
         //   height:1,
         //   depth:0.3, 
@@ -221,7 +230,7 @@ async function level(direction: string){
     //CALCUL SURFACE À UN ÉTAGE
     const salles = await queryClient.value?.getRoomsOnLevel({spaceId: spaceId.value, levelIndex: currentLevel.value!});
     salles?.forEach((salle) => {
-      if(estUnePiece(salle.coordinates[0])){
+      if(estUnePiece(salle.coordinates[0]!)){
         surfaceTotaleLevel.value += totalSurfaceReducer(0, salle);
         volumeTotalLevel.value += totalSurfaceReducer(0, salle) * 2.5;
       }
@@ -241,7 +250,7 @@ function togglePicking() {
   if(isPickingActivated.value) {
     space.value!.enablePickingMode({
       onPick: async (pick) => {
-
+        console.log(pick.coordinates);
         /**
          * Get the room at the picked point
          */
@@ -255,8 +264,8 @@ function togglePicking() {
           toast.add({
             title: 'Erreur',
             description: 'Aucune pièce trouvée à cet endroit',
-            color: 'red',
-            timeout: 3000,
+            color: 'error',
+            ////timeout: 3000,
             icon: "error"
           })
         }
@@ -289,6 +298,7 @@ function togglePicking() {
             color: 'green',
             alpha: 0.5,
           });
+        
 
         /**
          * Compute the total surface of the selected rooms
@@ -316,15 +326,15 @@ async function setupIdList({ queryClient }: {queryClient: QueryClient, space: Sp
   /**
    * Get the list of spaces and set the idList value
    */
-  idList.value = (await queryClient.listSpaces()).map((space) => ({ value: space.sid, name: space.name }));
+  idList.value = (await queryClient.listSpaces()).map((space) => ({ value: space.sid, label: space.name }));
 }
 
 async function setupListLot(){
 
   idLotsQuery.value = await $fetch(`/api/lot/lots/space/${spaceId.value}`, {method:"GET"});
   if(idLotsQuery.value){
-    idListLots.value = idLotsQuery.value.map((lot) => ({value:lot["idlot"], name:lot["numlot"]}));
-    idListLots.value.push({value: "tous", name:"Tous"});
+    idListLots.value = idLotsQuery.value.map((lot) => ({value:lot["idlot"], label:lot["numlot"]}));
+    idListLots.value.push({value: "tous", label:"Tous"});
   }
 //.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
 
@@ -370,7 +380,7 @@ async function colorerLot(){
           color:'yellow',
           alpha:0.5,
           tooltip: d => `${d.name}`,
-          onClick: (event) =>  {console.log(event)}
+          onClick: (event) =>  {openModalPiece.value = true; pieceIdModale.value = event.id; pieceNameModale.value = event.name}
         }); 
   }
   else{
@@ -383,7 +393,7 @@ async function colorerLot(){
     
     for(let i = 0 ; i < idListLots.value.length - 1 ; i++){ // -1 pour ne pas inclure le lot "tous"
       //J'itère sur chacun des lots de la liste de lots pour faire un GET des pièces de ce lot, pour ensuite les colorier
-      coloredRooms.value = (await $fetch(`/api/piece/lots/${idListLots.value[i].value}`, {method:"GET"}));
+      coloredRooms.value = (await $fetch(`/api/piece/lots/${idListLots.value[i]!.value}`, {method:"GET"}));
       coloredRooms.value.forEach((room:any) => {
         const coordo = ref<SmplrCoord2d[]>([]);
           room["asset"]["coordinates"][0].forEach((point: any) => {
@@ -401,11 +411,12 @@ async function colorerLot(){
       });
 
       const couleur = couleurs.pop(); // Améliorer ça, que ça boucle sur les couleurs plutôt que d'en prévoir un nombre fini
-      // i % 2 == 0 ? 'blue' : 'green';    
+      // i % 2 == 0 ? 'blue' : 'success';    
       space.value!.addPolygonDataLayer({
         id : 'lots'+i,
-        data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"], name:room["nompiece"], id:room["idpiece"], lot: idListLots.value[i].name})),
+        data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"], name:room["nompiece"], id:room["idpiece"], lot: idListLots.value[i]!.label})),
         tooltip: d => `${d.lot == '1' ? 'Commun' : 'Lot ' + d.lot} - ${d.name}`,
+        onClick: (e) => {openModalPiece.value = true;  pieceIdModale.value = e.id; pieceNameModale.value = e.name},
         color: couleur,
         alpha:0.5,
         
@@ -429,7 +440,7 @@ function getGlobalSurface(spaceId:string){
         if(etage.index != levels.length - 1){ //Comparaison pour ne pas compter le toit (dernier étage)
           queryClient.value?.getRoomsOnLevel({spaceId:spaceId, levelIndex:etage.index}).then((rooms) => {
             rooms?.forEach((room) => {
-              if(estUnePiece(room.coordinates[0])){
+              if(estUnePiece(room.coordinates[0]!)){
                 surfaceTotale.value += totalSurfaceReducer(0, room);
                 volumeTotal.value += totalSurfaceReducer(0, room) * 2.50;
               }
@@ -497,18 +508,51 @@ function findXYminMax(coordo:any){
   })
   return res;
 }
-function essaiHeatMap(){
+async function essaiHeatMap(){
   space.value!.removeDataLayer('hm');
+  roomsOnLevel.value = await $fetch(`/api/piece/pieces/etage/${currentLevel.value}&${spaceId.value}`);
+  console.log(roomsOnLevel.value);
+  roomsOnLevel?.value.forEach(async(room : any) => {
+    capteurSeul.value = await $fetch(`/api/capteur/${room.idpiece}`);
 
+  
+    console.log("CAPTEUR SEUL "+room.idpiece);
+    console.log(capteurSeul.value);
+    if(capteurSeul.value){
+
+      coordoCapteurs.value.push(capteurSeul.value);
+    }
+
+    
+     
+  });
+
+  console.log("COORDOCAPTEURS ");
+  console.log(coordoCapteurs.value);
+  coordoCapteurs.value.forEach((capteur) => {
+    if(capteur.length > 0){
+      console.log("ABCDEFGH ");
+      console.log(capteur[0]["asset"]);
+      space.value!.addPointDataLayer({
+        id: "capteur",
+        shape:'sphere',
+        data : [{id: capteur[0]["idpiece"], position : capteur[0]["asset"]["position"]}],
+        color:"blue"
+      })
+    }
+  })
+
+
+  // Les coordonnées se basent sur le SOL, si elles sont dans les airs ça ne fonctionnera pas
 const rawData = [     
-  { id:1, levelIndex: 2, x: 120, z: -50, value: 17 },
-  { id:2, levelIndex: 2, x: 130, z: -50, value: 19 },
-  { id:3, levelIndex: 2, x: 156.174, z: -70.572, value: 20 },
-  { id:4, levelIndex: 2, x: 197.174, z: -61.572, value: 22 },
-  { id:5, levelIndex: 2, x: 179.374, z: -69.572, value: 24 },
-  { id:6, levelIndex: 2, x: 180.174, z: -70.572, value: 15 },
-  { id:7, levelIndex: 2, x: 178.174, z: -68.572, value: 17 },
-  { id:8, levelIndex: 2, x: 179.174, z: -69.572, value: 17 },
+  { id:1, levelIndex: 2, x: 182.126, z: -54.355, value: 17 },
+  { id:2, levelIndex: 2, x: 176.879, z: -55.209, value: 25 },
+  { id:3, levelIndex: 2,  x: 195.989, z: -60.264, value: 20 },
+  { id:4, levelIndex: 2, x: 193.524, z: -57.278, value: 22 },
+  { id:5, levelIndex: 2, x: 176.262, z: -55.732, value: 27 },
+  { id:6, levelIndex: 2, x: 181.227, z: -53.254, value: 15 },
+  { id:7, levelIndex: 2, x: 172.337, z: -56.399, value: 17 },
+  { id:8, levelIndex: 2, x: 193.144, z: -63.587, value: 17 },
 ];
 
 const dataHm = rawData.map((d) => ({
@@ -557,20 +601,23 @@ const dataRail = [
     
     console.log('Heatmap data:', dataHm);
   
-    const colorScale = (smplrRef.value as Smplr)?.Color?.numericScale?.({
+    const colorScale = smplrRef.value?.Color?.numericScale?.({
       name: 'RdYlGn',
       domain: [15, 25],
+      invert:true
     });
 
-     space.value!.addHeatmapDataLayer({
-       id: 'hm',
-       style: 'spheres',
-       data: dataTest,
-       value: (d) => d.value,
-       color: colorScale,
-       gridSize: 9,
-       confidenceRadius: 0.6,
-     });
+    space.value!.addHeatmapDataLayer({
+      id: 'hm', 
+      style: 'bar-chart',
+      data: dataHm,
+      value: (d) => d.value,
+      color: colorScale!,
+      // HEIGHT OBLIGATOIRE POUR BAR-CHART
+      height: (v:number) => (v - 15) / 4,
+      gridSize: 0.5,        
+      confidenceRadius: 9,
+    });
 
    /* POUR LES FLUX D'AIR
     space.value!.addDottedPolylineDataLayer({
@@ -587,22 +634,22 @@ async function onReady({ space: s, queryClient: q, client: cli }: {queryClient: 
   /**
    * Set the space and queryClient values
    */
+  levelNames.value = [];
   smplrRef.value = cli;
   space.value = s;
   queryClient.value = q;
   idPieces.value = await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false});
   setupListLot();
   getGlobalSurface(spaceId.value);
-  essaiHeatMap();
   const temp = ref<any>();
   temp.value = (await queryClient.value!.getSpaceLevels(spaceId.value));
   maxLevels.value = temp.value.length - 1;
   temp.value.forEach((etage:SpaceLevel) => { levelNames.value.push(etage.name) });
-  currentLevelName.value = levelNames.value[currentLevel.value!];
   currentLevel.value = maxLevels.value;
-
+  currentLevelName.value = levelNames.value[currentLevel.value!];
   space.value.hideNavigationButtons();
   space.value.hideLevelPicker();
+  //essaiHeatMap();
   // boutonUp.value = document.getElementsByClassName("sc-jOrMOR edmxfw smplr_control_button")[0];
   // boutonUp.value.addEventListener("click", () => {
   //   if(currentLevel.value && currentLevel.value < maxLevels.value){
@@ -649,14 +696,14 @@ function measure() {
           toast.add({
             title: "Point 1",
             description: "Premier point de mesure posé",
-            timeout: 3000,
+            //timeout: 3000,
           });
           console.log(pick.coordinates);
           space.value!.addPointDataLayer({
             id: 'measure1',
             data: [{position: pick.coordinates}],
             shape: 'sphere',
-            color: 'red',
+            color: 'error',
             alpha: 0.8,
             onDrop ( dropped ) {
               points[0] = dropped.position;
@@ -671,7 +718,7 @@ function measure() {
           toast.add({
             title: "Point 2",
             description: "Deuxième point de mesure posé",
-            timeout: 3000,
+            //timeout: 3000,
           });
 
           points.push(pick.coordinates);
@@ -680,7 +727,7 @@ function measure() {
             id: 'measure2',
             data: [{position: pick.coordinates}],
             shape: 'sphere',
-            color: 'red',
+            color: 'error',
             alpha: 0.8,
             onDrop ( dropped ) {
               points[1] = dropped.position;
@@ -690,7 +737,7 @@ function measure() {
           space.value!.addPolylineDataLayer({
             id: 'measure',
             data: [{ coordinates: points }],
-            color: 'green',
+            color: 'success',
             alpha: 0.7,
             scale: 0.3,
             tooltip: () => "Distance: " + queryClient.value!.getPolylineLength({line: points, unit: "m"}).toFixed(2) + " m"
@@ -702,7 +749,7 @@ function measure() {
           toast.add({
             title: "Reset",
             description: "Mesure reset",
-            timeout: 3000,
+            //timeout: 3000,
           });
 
           space.value!.removeDataLayer('measure1');
