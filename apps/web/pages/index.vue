@@ -7,21 +7,28 @@
     <Stats :piece-id="pieceIdModale" v-model:open="openModalPiece", :name="pieceNameModale"/>
     
     <div class="flex items-center gap-5">
-      <USelect v-model="spaceId" :items="idList"  placeholder="Chargement ..." @change="afficherSpaceId"/>
-      <USelect v-model="idLot" :items="idListLots" placeholder="Numéro de lot" @change="colorerLot"/>
+      <Viewertoolbar 
+      v-model:space-id="spaceId" 
+      v-model:id-list="idList" 
+      v-model:is-picking-activated="isPickingActivated" 
+      v-model:query-client="queryClient" 
+      v-model:id-list-lots="idListLots"
+      v-model:is-multi-selcting-activated="isMultiSelctingActivated"
+      v-model:space="space"
+      v-model:id-lot="idLot"
+      v-model:idlist="idList"
+      v-model:is-furniture-showing="isFurnitureShowing"
+      v-model:is-measuring-activated="isMeasuringActivated"
+      v-model:is-multi-selecting-activated="isMultiSelctingActivated"
+      v-model:open-side-bar="openSideBar"
 
-      <UButton :color="isPickingActivated ? 'error' : 'success'" :disabled="space === null && queryClient === null" @click="togglePicking">
-        {{ isPickingActivated ? "Désactiver le picking mode" : "Activer le picking" }}
-      </UButton>
-      <UCheckbox v-model="isMultiSelctingActivated" name="multi-select" label="Selection multiple" />
-      <UButton :disabled="space === null && queryClient === null" :color="isMeasuringActivated ? 'error' : 'success'" @click="measure">
-        {{ isMeasuringActivated ? "Désactiver la règle" : "Activer la règle" }}
-      </UButton>
-      <div :style="{display: 'flex', flexDirection:'column'}">
-        <UButton :color="isFurnitureShowing ? 'error' : 'success'" @click="essaiHeatMap"> <!-- colorerLot('lot_wrRRGnvdGZvY7YD') -->
-          {{ isFurnitureShowing ? "Masquer les meubles" : "Montrer meubles" }}
-        </UButton>
-        
+      @afficher-spc-id="afficherSpaceId"
+      @colorer-lot="colorerLot"
+      @essai-heat-map="essaiHeatMap"
+      @measure="measure"
+      @toggle-picking="togglePicking"
+      @afficher-meubles="afficherMeubles"
+      />
 
       </div>
 
@@ -37,29 +44,24 @@
           </div>
         </div>
       </UBadge> -->
-            <UButton
-      icon="i-lucide-panel-left"
-      color="neutral"
-      variant="ghost"
-      aria-label="Toggle sidebar"
-      @click="openSideBar = !openSideBar"
-      >Surfaces-Volumes</UButton>
-    </div>
-    <SidebarSurface v-model:open="openSideBar" :surface-totale="surfaceTotale" :volume-total="volumeTotal" :surface-lot="surfaceTotaleLot" :volume-lot="volumeTotalLot" :surface-lvl="surfaceTotaleLevel" :volume-lvl="volumeTotalLevel"/>
-    <div class="w-5/6" :style="{display:'flex'}">
 
+      <SidebarSurface v-model:open="openSideBar" :surface-totale="surfaceTotale" :volume-total="volumeTotal" :surface-lot="surfaceTotaleLot" :volume-lot="volumeTotalLot" :surface-lvl="surfaceTotaleLevel" :volume-lvl="volumeTotalLevel"/>
+      
+      <div class="w-5/6" :style="{display:'flex'}">
       <div :style="{ display : 'flex', flexDirection: 'column', alignSelf:'center' }">
-        <UButton :color="'success'" :disabled="currentLevel! == maxLevels!" @click="level('up')"> +1 </UButton>
-        <p>{{ currentLevelName ? currentLevelName : "" }}</p>
-        <UButton :color="'success'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
+          <UButton :color="'success'" :disabled="currentLevel! == maxLevels!" @click="level('up')"> +1 </UButton>
+          <p>{{ currentLevelName ? currentLevelName : "" }}</p>
+          <UButton :color="'success'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
       </div>
       <SmplrViewer :space-id="spaceId" @mounted="setupIdList" @ready="onReady" />
     </div>
     <UBadge color="primary">
       <p id="smplr-legend"/>
     </UBadge>
+    
+
   </div>
-</template>
+  </template>
 
 <script setup lang="ts">
 import Stats from '../components/stats.vue';
@@ -153,7 +155,7 @@ async function afficherMeubles(){
             furnitureId:meuble.id,
             levelIndex: meuble.levelIndex,
           }],
-          color:(d) => d.levelIndex == 1 ? 'success' : 'error',
+          color:(d) => d.levelIndex == 1 ? 'green' : 'red', //Garder ça pour radiateurs à gaz / électriques
         });
         //   id: meuble.name,
         //   type: 'point',
@@ -210,33 +212,7 @@ async function resetMeubles(){
     });
 
 }
-async function level(direction: string){
-  surfaceTotaleLevel.value = 0;
-  volumeTotalLevel.value = 0;
-  direction == 'up' ? (currentLevel.value != maxLevels.value ? currentLevel.value!++ : null) : (currentLevel.value != 0 ? currentLevel.value!-- : null);
-  console.log("LEVEL COURANT : " +currentLevel.value);
-  const temp = ref<any>();
-  currentLevelName.value = levelNames.value[currentLevel.value!];
 
-
-  if(currentLevel.value! >= 0){
-    try{
-      space.value!.showUpToLevel(currentLevel.value!);
-
-    }catch(e){
-      console.log("ERREUR "+e);
-    }
-
-    //CALCUL SURFACE À UN ÉTAGE
-    const salles = await queryClient.value?.getRoomsOnLevel({spaceId: spaceId.value, levelIndex: currentLevel.value!});
-    salles?.forEach((salle) => {
-      if(estUnePiece(salle.coordinates[0]!)){
-        surfaceTotaleLevel.value += totalSurfaceReducer(0, salle);
-        volumeTotalLevel.value += totalSurfaceReducer(0, salle) * 2.5;
-      }
-    });
-  }
-}
 
 function togglePicking() {
   /**
@@ -339,7 +315,33 @@ async function setupListLot(){
 //.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
 
 }
+async function level(direction: string){
+  surfaceTotaleLevel.value = 0;
+  volumeTotalLevel.value = 0;
+  direction == 'up' ? (currentLevel.value != maxLevels.value ? currentLevel.value!++ : null) : (currentLevel.value != 0 ? currentLevel.value!-- : null);
+  console.log("LEVEL COURANT : " +currentLevel.value);
+  const temp = ref<any>();
+  currentLevelName.value = levelNames.value[currentLevel.value!];
 
+
+  if(currentLevel.value! >= 0){
+    try{
+      space.value!.showUpToLevel(currentLevel.value!);
+
+    }catch(e){
+      console.log("ERREUR "+e);
+    }
+
+    //CALCUL SURFACE À UN ÉTAGE
+    const salles = await queryClient.value?.getRoomsOnLevel({spaceId: spaceId.value, levelIndex: currentLevel.value!});
+    salles?.forEach((salle : any) => {
+      if(estUnePiece(salle.coordinates[0]!)){
+        surfaceTotaleLevel.value += totalSurfaceReducer(0, salle);
+        volumeTotalLevel.value += totalSurfaceReducer(0, salle) * 2.5;
+      }
+    });
+  }
+}
 async function colorerLot(){
   coloredRooms.value = new Set([]);
   surfaceTotaleLot.value = 0;
