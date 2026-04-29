@@ -1,8 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
+  css: ['~/assets/css/main.css'],
   devtools: {
-    enabled: true,
+    enabled: false,
     timeline: {
       enabled: true,
     },
@@ -14,7 +15,14 @@ export default defineNuxtConfig({
       SMPLR_ORGANIZATION_ID: process.env.NUXT_SMPLR_ORGANIZATION_ID
     }
   },
-  modules: ['@nuxt/eslint', '@nuxt/ui'],
+  icon:{
+    clientBundle: {
+      scan: true,
+      includeCustomCollections: true,
+    },
+    serverBundle: 'remote',
+  },
+  modules: ['@nuxt/eslint', '@nuxt/ui', '@nuxt/icon'],
   nitro: {
   devProxy: {
     "/api": {
@@ -23,4 +31,11 @@ export default defineNuxtConfig({
     },
     },
   },
+  vite:{
+    optimizeDeps:{
+      include : [
+        '@smplrspace/smplr-loader',
+      ]
+    }
+  }
 })
