@@ -1,6 +1,6 @@
 import type { RoomWithHoles } from "@smplrspace/smplr-loader";
 export const useLevels = (surfaceTotaleLevel : any, volumeTotalLevel : any, idPieces: any, currentLevel : any, maxLevels : any, currentLevelName : any, levelNames : any, queryClient : any, spaceId : any, space : any ) =>  {
-    async function level(direction: string){
+async function level(direction: string){
   surfaceTotaleLevel.value = 0;
   volumeTotalLevel.value = 0;
   direction == 'up' ? (currentLevel.value != maxLevels.value ? currentLevel.value!++ : null) : (currentLevel.value != 0 ? currentLevel.value!-- : null);

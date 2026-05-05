@@ -22,6 +22,9 @@
     "packages/*"
   ],
   "dependencies": {
+    "@authzed/authzed-node": "^1.6.1",
+    "@nestjs/microservices": "^11.1.19",
+    "@senx/warp10": "^2.0.3",
     "nuxt": "^4.4.2"
   }
 }
