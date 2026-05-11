@@ -4,24 +4,31 @@
   </div>
   <div class="flex flex-col items-center justify-around h-screen">
     
-    <Stats :piece-id="pieceIdModale" v-model:open="openModalPiece", :name="pieceNameModale"/>
+    <Stats :piece-id="pieceIdModale" v-model:open="openModalPiece", v-model:name="pieceNameModale"/>
     
     <div class="flex items-center gap-5">
-      <USelect v-model="spaceId" :items="idList"  placeholder="Chargement ..." @change="afficherSpaceId"/>
-      <USelect v-model="idLot" :items="idListLots" placeholder="Numéro de lot" @change="colorerLot"/>
+      <Viewertoolbar 
+      v-model:space-id="spaceId" 
+      v-model:id-list="idList" 
+      v-model:is-picking-activated="isPickingActivated" 
+      v-model:query-client="queryClient" 
+      v-model:id-list-lots="idListLots"
+      v-model:is-multi-selcting-activated="isMultiSelctingActivated"
+      v-model:space="space"
+      v-model:id-lot="idLot"
+      v-model:idlist="idList"
+      v-model:is-furniture-showing="isFurnitureShowing"
+      v-model:is-measuring-activated="isMeasuringActivated"
+      v-model:is-multi-selecting-activated="isMultiSelctingActivated"
+      v-model:open-side-bar="openSideBar"
 
-      <UButton :color="isPickingActivated ? 'error' : 'success'" :disabled="space === null && queryClient === null" @click="togglePicking">
-        {{ isPickingActivated ? "Désactiver le picking mode" : "Activer le picking" }}
-      </UButton>
-      <UCheckbox v-model="isMultiSelctingActivated" name="multi-select" label="Selection multiple" />
-      <UButton :disabled="space === null && queryClient === null" :color="isMeasuringActivated ? 'error' : 'success'" @click="measure">
-        {{ isMeasuringActivated ? "Désactiver la règle" : "Activer la règle" }}
-      </UButton>
-      <div :style="{display: 'flex', flexDirection:'column'}">
-        <UButton :color="isFurnitureShowing ? 'error' : 'success'" @click="essaiHeatMap"> <!-- colorerLot('lot_wrRRGnvdGZvY7YD') -->
-          {{ isFurnitureShowing ? "Masquer les meubles" : "Montrer meubles" }}
-        </UButton>
-        
+      @afficher-spc-id="afficherSpaceId"
+      @colorer-lot="colorerLot"
+      @essai-heat-map="essaiHeatMap"
+      @measure="measure"
+      @toggle-picking="togglePicking"
+      @afficher-meubles="afficherMeubles"
+      />
 
       </div>
 
@@ -37,42 +44,50 @@
           </div>
         </div>
       </UBadge> -->
-            <UButton
-      icon="i-lucide-panel-left"
-      color="neutral"
-      variant="ghost"
-      aria-label="Toggle sidebar"
-      @click="openSideBar = !openSideBar"
-      >Surfaces-Volumes</UButton>
-    </div>
-    <SidebarSurface v-model:open="openSideBar" :surface-totale="surfaceTotale" :volume-total="volumeTotal" :surface-lot="surfaceTotaleLot" :volume-lot="volumeTotalLot" :surface-lvl="surfaceTotaleLevel" :volume-lvl="volumeTotalLevel"/>
-    <div class="w-5/6" :style="{display:'flex'}">
 
+      <SidebarSurface v-model:open="openSideBar"/>
+      
+      <div class="w-5/6" :style="{display:'flex'}">
       <div :style="{ display : 'flex', flexDirection: 'column', alignSelf:'center' }">
-        <UButton :color="'success'" :disabled="currentLevel! == maxLevels!" @click="level('up')"> +1 </UButton>
-        <p>{{ currentLevelName ? currentLevelName : "" }}</p>
-        <UButton :color="'success'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
+          <UButton :color="'success'" :disabled="currentLevel! == maxLevels!" @click="level('up')"> +1 </UButton>
+          <p>{{ currentLevelName === null || currentLevelName === undefined ? "inconnu" : currentLevelName }}</p>
+          <UButton :color="'success'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
       </div>
       <SmplrViewer :space-id="spaceId" @mounted="setupIdList" @ready="onReady" />
     </div>
     <UBadge color="primary">
       <p id="smplr-legend"/>
     </UBadge>
+  
   </div>
-</template>
+  </template>
 
 <script setup lang="ts">
 import Stats from '../components/stats.vue';
 import SidebarSurface from '~/components/sidebarsurface.vue';
 import type { QueryClient, SmplrCoord2d, RoomWithHoles,  Smplr,  SmplrCoord3d,  Space, SpaceLevel} from '@smplrspace/smplr-loader';
 import { useRoute } from "vue-router";
+import { createPinia } from 'pinia';
+import { createApp } from 'vue';
+import App from '../app.vue';
+
+import { useVariablesStore } from '~/stores/variables';
+import { useSurfacesStore } from '~/stores/surfaces';
+
+const pinia = createPinia();
+const app = createApp(App);
+app.use(pinia);
 //spc_c8u5tvfx
 //spc_cx1svr5x
 
 //SERIENCE spc_k4bxdm74
-const smplrRef= ref<Smplr>();
 
-const spaceId = ref<string>('spc_c8u5tvfx');
+const smplrRef= ref<Smplr>();
+const storeVar = useVariablesStore();
+const storeSurfaces = useSurfacesStore();
+
+const spaceId = ref(storeVar._spaceId);
+//const spaceId = ref<string>('spc_c8u5tvfx');
 const idList = ref<{ value: string, label: string }[]>([]);
 const isPickingActivated = ref<boolean>(false);
 const isMultiSelctingActivated = ref<boolean>(false);
@@ -81,17 +96,10 @@ const isFurnitureShowing = ref<boolean>(false);
 
 const toast = useToast();
 
-const space = ref<Space | null>(null);
+const space = storeVar._space;
 const queryClient = ref<QueryClient | null>(null);
 const surface = ref<number>(0);
-const surfaceTotale = ref<number>(0);
-const volumeTotal = ref<number>(0);
 
-const surfaceTotaleLot = ref<number>(0);
-const volumeTotalLot = ref<number>(0);
-
-const surfaceTotaleLevel = ref<number>(0);
-const volumeTotalLevel = ref<number>(0);
 
 const selectedRooms = ref<Set<RoomWithHoles>>(new Set([]));
 const idPieces = ref<any>();
@@ -107,6 +115,7 @@ const count = ref<number>(0);
 const currentLevel = ref<number>();
 const currentLevelName = ref<string>();
 const maxLevels = ref<number>(0);
+const minLevel = ref<number>(0);
 const levelNames = ref<Array<string>>([]);
 
 const openSideBar = ref(false);
@@ -116,16 +125,17 @@ const pieceIdModale = ref<string>('');
 const pieceNameModale = ref<string>('');
 
 const coordoCapteurs = ref<Array<any>>([]);
+const valeursCapteurs = ref<Array<any>>([]);
 const roomsOnLevel = ref<any>();
 const capteurSeul = ref<any>();
 
 async function afficherSpaceId(){
   console.log(count.value);
-  idPieces.value = await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false});
+  console.log("SPACE ID");
+  console.log(spaceId.value);
+  storeVar.setIdPieces(await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false}));
 
-  surfaceTotale.value = 0;
-  volumeTotal.value = 0;
-
+  storeSurfaces.resetGlobal()
 
 }
 async function afficherMeubles(){
@@ -136,7 +146,7 @@ async function afficherMeubles(){
   else{
 
     const meubles = ref<Array<any>>();
-      meubles.value = await queryClient.value?.getAllFurnitureInSpace(spaceId.value);
+      meubles.value = await storeVar._queryClient?.getAllFurnitureInSpace(spaceId.value);
       count.value ++;
       if(meubles.value && count.value - 1 == meubles.value.length){
         count.value = 0;
@@ -145,15 +155,15 @@ async function afficherMeubles(){
         meubles.value.forEach((meuble) => {
       console.log(meuble);
       if(meuble.name.includes("radiateur")){
-        // space.value!.addDataLayer({
-          space.value!.addFurnitureDataLayer({
+        // storeVar._space!.addDataLayer({
+          storeVar._space!.addFurnitureDataLayer({
             id:'radiateurs'+meuble.name,
           data:[{
             id:meuble.name,
             furnitureId:meuble.id,
             levelIndex: meuble.levelIndex,
           }],
-          color:(d) => d.levelIndex == 1 ? 'success' : 'error',
+          color:(d) => d.levelIndex == 1 ? 'green' : 'red', //Garder ça pour radiateurs à gaz / électriques
         });
         //   id: meuble.name,
         //   type: 'point',
@@ -178,15 +188,15 @@ async function afficherMeubles(){
       }
     });
 
-    space.value!.showUpToLevel(meubles.value[count.value].levelIndex);
+    storeVar._space!.showUpToLevel(meubles.value[count.value].levelIndex);
     currentLevel.value = meubles.value[count.value].levelIndex;
 
-    space.value!.updateRenderOptions({
+    storeVar._space!.updateRenderOptions({
       walls:{
         alpha:0.4,
       }
     });
-        space.value!.setCameraPlacement({
+        storeVar._space!.setCameraPlacement({
           alpha:-Math.PI/2 + 1,
           beta:  Math.PI/2 - 0.3,
           radius:0,
@@ -202,41 +212,15 @@ async function afficherMeubles(){
 }
 }
 async function resetMeubles(){
-  space.value!.removeAllDataLayers();
-    space.value!.updateRenderOptions({
+  storeVar._space!.removeAllDataLayers();
+    storeVar._space!.updateRenderOptions({
       walls:{
         alpha:1,
       }
     });
 
 }
-async function level(direction: string){
-  surfaceTotaleLevel.value = 0;
-  volumeTotalLevel.value = 0;
-  direction == 'up' ? (currentLevel.value != maxLevels.value ? currentLevel.value!++ : null) : (currentLevel.value != 0 ? currentLevel.value!-- : null);
-  console.log("LEVEL COURANT : " +currentLevel.value);
-  const temp = ref<any>();
-  currentLevelName.value = levelNames.value[currentLevel.value!];
 
-
-  if(currentLevel.value! >= 0){
-    try{
-      space.value!.showUpToLevel(currentLevel.value!);
-
-    }catch(e){
-      console.log("ERREUR "+e);
-    }
-
-    //CALCUL SURFACE À UN ÉTAGE
-    const salles = await queryClient.value?.getRoomsOnLevel({spaceId: spaceId.value, levelIndex: currentLevel.value!});
-    salles?.forEach((salle) => {
-      if(estUnePiece(salle.coordinates[0]!)){
-        surfaceTotaleLevel.value += totalSurfaceReducer(0, salle);
-        volumeTotalLevel.value += totalSurfaceReducer(0, salle) * 2.5;
-      }
-    });
-  }
-}
 
 function togglePicking() {
   /**
@@ -247,14 +231,16 @@ function togglePicking() {
   /**
    * If the picking mode is activated, we enable the picking mode
    */
+
+  
   if(isPickingActivated.value) {
-    space.value!.enablePickingMode({
+    storeVar._space!.enablePickingMode({
       onPick: async (pick) => {
         console.log(pick.coordinates);
         /**
          * Get the room at the picked point
          */
-        const room = await queryClient.value!.getRoomAtPoint({spaceId: spaceId.value, point: pick.coordinates});
+        const room = await storeVar._queryClient!.getRoomAtPoint({spaceId: spaceId.value, point: pick.coordinates});
 
         /**
          * If no room is found, we display a toast
@@ -292,7 +278,7 @@ function togglePicking() {
         /**
          * Add the selected rooms to the data layer
          */
-        space.value!.addPolygonDataLayer({
+        storeVar._space!.addPolygonDataLayer({
             id: 'room',
             data: [...selectedRooms.value].map((room) => ({ coordinates: room.coordinates })),
             color: 'green',
@@ -304,6 +290,7 @@ function togglePicking() {
          * Compute the total surface of the selected rooms
          */
         surface.value = [...selectedRooms.value].reduce(totalSurfaceReducer, 0);
+        console.log(surface.value);
         //surfaceTotale.value = queryClient.getRoomsOnLevel(1);
       }
     });
@@ -316,8 +303,8 @@ function togglePicking() {
 }
 
 function resetSelectedRooms() {
-  space.value!.disablePickingMode();
-  space.value!.removeDataLayer('room');
+  storeVar._space!.disablePickingMode();
+  storeVar._space!.removeDataLayer('room');
   selectedRooms.value = new Set([]);
   surface.value = 0;
 }
@@ -339,14 +326,43 @@ async function setupListLot(){
 //.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
 
 }
+async function level(direction: string){
+  storeSurfaces.resetLevel();
+  direction == 'up' ? (currentLevel.value != maxLevels.value ? currentLevel.value!++ : null) : (currentLevel.value != 0 ? currentLevel.value!-- : null);
+  const temp = ref<any>();
+  currentLevelName.value = levelNames.value[currentLevel.value!];
 
+
+  if(currentLevel.value! >= minLevel.value){
+    try{
+      storeVar._space!.showUpToLevel(currentLevel.value!);
+
+    }catch(e){
+      console.log("ERREUR "+e);
+    }
+
+    //CALCUL SURFACE À UN ÉTAGE
+    const salles = await $fetch(`/api/piece/pieces/etage/${currentLevelName!.value}&${spaceId.value}`); 
+    console.log("SALLES ÉTAGE "+currentLevel.value);
+    console.log(currentLevelName.value);
+    console.log(salles);
+    salles?.forEach((salle : any) => {
+        if(salle.asset){
+          
+          storeSurfaces.incrementLevel(storeVar._queryClient!.getPolygonArea({polygon: salle.asset.coordinates, unit: 'sqm'}), storeVar._queryClient!.getPolygonArea({polygon: salle.asset.coordinates, unit: 'sqm'}) * 2.5)
+
+        }
+
+      
+    });
+  }
+}
 async function colorerLot(){
   coloredRooms.value = new Set([]);
-  surfaceTotaleLot.value = 0;
-  volumeTotalLot.value = 0;
+  storeSurfaces.resetLot();
   for(let i = 0 ; i < idListLots.value.length ; i++){
-    if(space.value != null){
-      space.value!.removeDataLayer('lots' +i);
+    if(storeVar._space != null){
+      storeVar._space!.removeDataLayer('lots' +i);
 
     }
 
@@ -366,15 +382,15 @@ async function colorerLot(){
           if(room["asset"]["levelIndex"] > dernierLevel){
             dernierLevel = room["asset"]["levelIndex"];
           }
-          const temp = queryClient.value!.getPolygonArea({polygon: coordo.value, unit: 'sqm'});
-          surfaceTotaleLot.value += temp;
-          volumeTotalLot.value += temp * 2.50; 
+          const temp = storeVar._queryClient!.getPolygonArea({polygon: coordo.value, unit: 'sqm'});
+          storeSurfaces.incrementLot(temp, temp * 2.50);
+
       }
     });
-        space.value!.showUpToLevel(dernierLevel);
+        storeVar._space!.showUpToLevel(dernierLevel);
         currentLevel.value = dernierLevel;
         currentLevelName.value = levelNames.value[dernierLevel];
-        space.value!.addPolygonDataLayer({
+        storeVar._space!.addPolygonDataLayer({
           id : 'lot',
           data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"], name:room["nompiece"], id:room["idpiece"] })),
           color:'yellow',
@@ -384,8 +400,8 @@ async function colorerLot(){
         }); 
   }
   else{
-    if(space.value != null){
-      space.value!.removeDataLayer('lot');
+    if(storeVar._space != null){
+      storeVar._space!.removeDataLayer('lot');
 
     }
     coloredRooms.value = new Set([]);
@@ -405,14 +421,13 @@ async function colorerLot(){
           * Je passe par une variable temporaire pour adapter si jamais on a la taille de chaque mur
           */
 
-          const temp = queryClient.value!.getPolygonArea({polygon: coordo.value, unit: 'sqm'});
-          surfaceTotaleLot.value += temp;
-          volumeTotalLot.value += temp * 2.50; // Ici, 2,5m mais si jamais ça change on n'aura qu'à mettre la taille des murs
+          const temp = storeVar._queryClient!.getPolygonArea({polygon: coordo.value, unit: 'sqm'});
+          storeSurfaces.incrementLot(temp, temp * 2.50);  // Ici, 2,5m mais si jamais ça change on n'aura qu'à mettre la taille des murs
       });
 
       const couleur = couleurs.pop(); // Améliorer ça, que ça boucle sur les couleurs plutôt que d'en prévoir un nombre fini
       // i % 2 == 0 ? 'blue' : 'success';    
-      space.value!.addPolygonDataLayer({
+      storeVar._space!.addPolygonDataLayer({
         id : 'lots'+i,
         data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"], name:room["nompiece"], id:room["idpiece"], lot: idListLots.value[i]!.label})),
         tooltip: d => `${d.lot == '1' ? 'Commun' : 'Lot ' + d.lot} - ${d.name}`,
@@ -428,29 +443,27 @@ async function colorerLot(){
 }
 
 
-function getGlobalSurface(spaceId:string){
+async function getGlobalSurface(spaceId:string){
   /*
   Essayer de récupérer toutes les rooms, utiliser totalSurfaceReducer pour chaque Room dans la liste des rooms de tous les étages.
   Là il faut que j'arrive à itérer sur le getRoomsOnLevel
   */
 
-  if(queryClient.value){
-    queryClient.value.getSpaceLevels(spaceId).then((levels) => {
-      levels.forEach((etage) => {
+  if(storeVar._queryClient){
+    storeVar._queryClient.getSpaceLevels(spaceId).then(async (levels) => {
+      for(const etage of levels){
         if(etage.index != levels.length - 1){ //Comparaison pour ne pas compter le toit (dernier étage)
-          queryClient.value?.getRoomsOnLevel({spaceId:spaceId, levelIndex:etage.index}).then((rooms) => {
-            rooms?.forEach((room) => {
-              if(estUnePiece(room.coordinates[0]!)){
-                surfaceTotale.value += totalSurfaceReducer(0, room);
-                volumeTotal.value += totalSurfaceReducer(0, room) * 2.50;
-              }
+          const rooms = await $fetch(`/api/piece/pieces/etage/${etage.index}&${spaceId}`);
 
-            })
-          });
+            for(const room of rooms){
+              
+                storeSurfaces.incrementGlobal(storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}), storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}) * 2.5)
+              
 
+            }
         }
 
-      })
+      }
     });    
   }
 
@@ -463,9 +476,9 @@ function estUnePiece(coordonneesSalle: Array<any>){
   */
 
 
-//  let data = idPieces.value["data"][3]["asset"]["coordinates"][0];
+//  let data = storeVar._idPieces["data"][3]["asset"]["coordinates"][0];
   let data = new Array<any>(); 
-  data = idPieces.value["data"];
+  data = storeVar._idPieces["data"];
   data.forEach((pieceBdd) => {
     // let coordo = findXYminMax(pieceBdd["asset"]["coordinates"][0]);
     
@@ -509,38 +522,46 @@ function findXYminMax(coordo:any){
   return res;
 }
 async function essaiHeatMap(){
-  space.value!.removeDataLayer('hm');
+  coordoCapteurs.value = [];
+  storeVar._space!.removeDataLayer('hm');
+  storeVar._space!.removeAllDataLayers();
   roomsOnLevel.value = await $fetch(`/api/piece/pieces/etage/${currentLevel.value}&${spaceId.value}`);
-  console.log(roomsOnLevel.value);
-  roomsOnLevel?.value.forEach(async(room : any) => {
-    capteurSeul.value = await $fetch(`/api/capteur/${room.idpiece}`);
+  console.log("LEVEL COURANT : " + currentLevel.value);
 
+  for (const room of roomsOnLevel.value) {
+  const capteur = await $fetch(`/api/capteur/${room.idpiece}`);
   
-    console.log("CAPTEUR SEUL "+room.idpiece);
-    console.log(capteurSeul.value);
-    if(capteurSeul.value){
-
-      coordoCapteurs.value.push(capteurSeul.value);
-    }
-
-    
-     
-  });
+  if (capteur) {
+    const warpData = await $fetch(`/api/capteur/warp10/${room.idpiece}`);
+    coordoCapteurs.value.push([room, warpData]);
+  }
+}
 
   console.log("COORDOCAPTEURS ");
   console.log(coordoCapteurs.value);
-  coordoCapteurs.value.forEach((capteur) => {
-    if(capteur.length > 0){
-      console.log("ABCDEFGH ");
-      console.log(capteur[0]["asset"]);
-      space.value!.addPointDataLayer({
-        id: "capteur",
-        shape:'sphere',
-        data : [{id: capteur[0]["idpiece"], position : capteur[0]["asset"]["position"]}],
-        color:"blue"
-      })
-    }
-  })
+
+ coordoCapteurs.value.forEach((donnee: any) => {
+  const temperature = donnee[1][0]?.["v"]?.[0]?.[1];
+  
+  if (temperature !== undefined) {
+    storeVar._space!.addPolygonDataLayer({
+      id: donnee[0]["idpiece"],
+      data: [{
+        id: donnee[0]["idpiece"],
+        coordinates: donnee[0]["asset"]["coordinates"],
+        value: temperature
+      }],
+      color: (d) => {
+        if (d.value > 25) return "red";
+        if (d.value < 20) return "green";
+        return "yellow";
+      },
+      alpha: 0.5,
+      tooltip: (d) => `Température : ${d.value}°C`,
+      onClick: (d) => console.log(d.id)
+    });
+  }
+});
 
 
   // Les coordonnées se basent sur le SOL, si elles sont dans les airs ça ne fonctionnera pas
@@ -572,55 +593,29 @@ const dataTest = [
   { id:4, value: 22, position : {levelIndex:2, x: 117.82239335232062, z: -49.51764202937709, elevation: 0.009999999776486135}},
   { id:5, value: 24, position : {levelIndex:2,x: 136.54854211915313, z: -56.12197980280458, elevation: 0.009999999776482582}},
   { id:6, value: 15, position : {levelIndex:2, x: 97.77430667927675, z: -57.3023438052912, elevation: 0.009999999776482582}},
-
-
-
 ]
-
-const dataRail = [
-  {
-    id: 'rail-complete',
-    coordinates: [
-      { levelIndex: 2, x: 120, z: -50, elevation: 0.8 },
-
-      { levelIndex: 2, x: 179.174, z: -69.572, elevation: 0.8 },
-    ]
-  }
-];
+    //console.log('Heatmap data:', dataHm);
   
-   /*const dataHm = rawData.map((d) => ({
-     id:d.x * d.value,
-     coordinates: [{
-       levelIndex: d.levelIndex,
-       x: d.x,
-       z: d.z,
-       elevation:d.elevation
-      }],
-      //value: d.value,
-    }));*/
-    
-    console.log('Heatmap data:', dataHm);
-  
-    const colorScale = smplrRef.value?.Color?.numericScale?.({
+    const colorScale = storeVar._smplrRef?.Color?.numericScale?.({
       name: 'RdYlGn',
       domain: [15, 25],
       invert:true
     });
 
-    space.value!.addHeatmapDataLayer({
-      id: 'hm', 
-      style: 'bar-chart',
-      data: dataHm,
-      value: (d) => d.value,
-      color: colorScale!,
-      // HEIGHT OBLIGATOIRE POUR BAR-CHART
-      height: (v:number) => (v - 15) / 4,
-      gridSize: 0.5,        
-      confidenceRadius: 9,
-    });
+    // storeVar._space!.addHeatmapDataLayer({
+    //   id: 'hm', 
+    //   style: 'bar-chart',
+    //   data: dataHm,
+    //   value: (d) => d.value,
+    //   color: colorScale!,
+    //   // HEIGHT OBLIGATOIRE POUR BAR-CHART
+    //   height: (v:number) => (v - 15) / 4,
+    //   gridSize: 0.5,        
+    //   confidenceRadius: 9,
+    // });
 
    /* POUR LES FLUX D'AIR
-    space.value!.addDottedPolylineDataLayer({
+    storeVar._space!.addDottedPolylineDataLayer({
       id:'flux',
       data:dataRail,
       animation:'railway',
@@ -634,21 +629,29 @@ async function onReady({ space: s, queryClient: q, client: cli }: {queryClient: 
   /**
    * Set the space and queryClient values
    */
+
+   coordoCapteurs.value = [];
+
   levelNames.value = [];
-  smplrRef.value = cli;
-  space.value = s;
-  queryClient.value = q;
-  idPieces.value = await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false});
+
+  storeVar.init(s, q, await $fetch(`/api/piece/pieces/${spaceId.value}`), cli);
   setupListLot();
   getGlobalSurface(spaceId.value);
-  const temp = ref<any>();
-  temp.value = (await queryClient.value!.getSpaceLevels(spaceId.value));
-  maxLevels.value = temp.value.length - 1;
-  temp.value.forEach((etage:SpaceLevel) => { levelNames.value.push(etage.name) });
+  //const temp = ref<any>();
+  const { data: temp } = await useFetch(() => `/api/piece/etage/${spaceId.value}`);
+// levels sera automatiquement une Ref
+  console.log(temp.value);
+  minLevel.value = temp.value[0]["etage"];
+  temp.value.forEach((etage:any) => { levelNames.value.push(etage.etage) });
+  levelNames.value.push("Toit");
+  maxLevels.value = temp.value.length;
   currentLevel.value = maxLevels.value;
   currentLevelName.value = levelNames.value[currentLevel.value!];
-  space.value.hideNavigationButtons();
-  space.value.hideLevelPicker();
+  
+  storeVar.space!.hideNavigationButtons();
+  storeVar.space!.hideLevelPicker();
+
+  console.log("C'est prêt");
   //essaiHeatMap();
   // boutonUp.value = document.getElementsByClassName("sc-jOrMOR edmxfw smplr_control_button")[0];
   // boutonUp.value.addEventListener("click", () => {
@@ -672,7 +675,7 @@ function totalSurfaceReducer(acc: number, room: RoomWithHoles) {
   /**
    * Compute the total surface of the selected rooms
    */
-  return acc + queryClient.value!.getPolygonArea({polygon: room.room, unit: 'sqm'});
+  return acc + storeVar._queryClient!.getPolygonArea({polygon: room.room, unit: 'sqm'});
 }
 
 function measure() {
@@ -687,7 +690,7 @@ function measure() {
    */
   if(isMeasuringActivated.value) {
 
-    space.value!.enablePickingMode({
+    storeVar._space!.enablePickingMode({
       onPick: (pick) => {
         /**
          * If no point is set, we add the first point and display a toast
@@ -699,7 +702,7 @@ function measure() {
             //timeout: 3000,
           });
           console.log(pick.coordinates);
-          space.value!.addPointDataLayer({
+          storeVar._space!.addPointDataLayer({
             id: 'measure1',
             data: [{position: pick.coordinates}],
             shape: 'sphere',
@@ -723,7 +726,7 @@ function measure() {
 
           points.push(pick.coordinates);
 
-          space.value!.addPointDataLayer({
+          storeVar._space!.addPointDataLayer({
             id: 'measure2',
             data: [{position: pick.coordinates}],
             shape: 'sphere',
@@ -734,13 +737,13 @@ function measure() {
             },
           })
 
-          space.value!.addPolylineDataLayer({
+          storeVar._space!.addPolylineDataLayer({
             id: 'measure',
             data: [{ coordinates: points }],
             color: 'success',
             alpha: 0.7,
             scale: 0.3,
-            tooltip: () => "Distance: " + queryClient.value!.getPolylineLength({line: points, unit: "m"}).toFixed(2) + " m"
+            tooltip: () => "Distance: " + storeVar._queryClient!.getPolylineLength({line: points, unit: "m"}).toFixed(2) + " m"
           })
         /**
          * If two points are set, we reset the measure
@@ -752,9 +755,9 @@ function measure() {
             //timeout: 3000,
           });
 
-          space.value!.removeDataLayer('measure1');
-          space.value!.removeDataLayer('measure2');
-          space.value!.removeDataLayer('measure');
+          storeVar._space!.removeDataLayer('measure1');
+          storeVar._space!.removeDataLayer('measure2');
+          storeVar._space!.removeDataLayer('measure');
 
           points = [];
         }
@@ -764,10 +767,10 @@ function measure() {
    * If the measuring mode is disabled, we disable the picking mode and remove the data layers
    */
   } else {
-    space.value!.disablePickingMode();
-    space.value!.removeDataLayer('measure1');
-    space.value!.removeDataLayer('measure2');
-    space.value!.removeDataLayer('measure');
+    storeVar._space!.disablePickingMode();
+    storeVar._space!.removeDataLayer('measure1');
+    storeVar._space!.removeDataLayer('measure2');
+    storeVar._space!.removeDataLayer('measure');
     points = [];
   }
 }

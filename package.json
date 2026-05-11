@@ -17,6 +17,7 @@
     "@smplrspace/smplr-loader": "^2.54.2",
     "eslint": "^9.0.0",
     "nuxt": "latest",
+    "pinia": "^3.0.4",
     "tailwindcss": "^4.2.4",
     "vue": "latest",
     "vue-router": "latest"

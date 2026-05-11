@@ -1,20 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import type { DropdownMenuItem, NavigationMenuItem } from '@nuxt/ui'
-
+import { useSurfacesStore } from '~/stores/surfaces';
 const colorMode = useColorMode();
-const props = defineProps({
-  surfaceTotale : Number,
-  volumeTotal : Number,
-  surfaceLot : Number,
-  volumeLot : Number,  
-  surfaceLvl : Number,
-  volumeLvl : Number,
-});
+const storeSurfaces = useSurfacesStore();
 const open = ref(false);
 
 
-const surfaces = [props.surfaceTotale, props.surfaceLot];
 </script>
 
 <template>
@@ -40,21 +32,21 @@ const surfaces = [props.surfaceTotale, props.surfaceLot];
         <UCard class="mt-10">
 
           <ul>
-            <li>Surface Totale : {{ props.surfaceTotale?.toFixed(2) }} m² </li>
-            <li>Volume Total : {{ props.volumeTotal?.toFixed(2) }} m³</li>          
+            <li>Surface Totale : {{ storeSurfaces.surfaceTotale?.toFixed(2) }} m² </li>
+            <li>Volume Total : {{ storeSurfaces.volumeTotal?.toFixed(2) }} m³</li>          
           </ul>
         </UCard>
         <UCard class="mt-10">
           <ul>
-            <li>Surface Lot : {{ props.surfaceLot?.toFixed(2) }} m²</li>
-            <li>Volume Lot : {{ props.volumeLot?.toFixed(2) }} m³</li>
+            <li>Surface Lot : {{ storeSurfaces.surfaceTotaleLot?.toFixed(2) }} m²</li>
+            <li>Volume Lot : {{ storeSurfaces.volumeTotalLot?.toFixed(2) }} m³</li>
           </ul>
 
         </UCard>
         <UCard class="mt-10">
           <ul>
-            <li>Surface Étage : {{ props.surfaceLvl?.toFixed(2) }} m²</li>
-            <li>Volume Étage : {{ props.volumeLvl?.toFixed(2) }} m³</li>
+            <li>Surface Étage : {{ storeSurfaces.surfaceTotaleLevel?.toFixed(2) }} m²</li>
+            <li>Volume Étage : {{ storeSurfaces.volumeTotalLevel?.toFixed(2) }} m³</li>
           </ul>
 
         </UCard>
