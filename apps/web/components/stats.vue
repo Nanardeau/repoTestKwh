@@ -1,6 +1,9 @@
 
 <script setup lang="ts">
+
 import { ref } from 'vue';
+
+
 
 const open = ref<boolean>(false);
 const modifiable = ref<boolean>(false);
@@ -12,6 +15,27 @@ const props = defineProps(
     volumePiece:Number
   }
 )
+
+if(open.value){
+  const idpiece = props.pieceId ? props.pieceId : 'piece_AIXYFFbMFB4d3e6';
+
+  try{
+    
+    const data0 = ref();
+    
+    data0.value = await $fetch(`/api/capteur/warp10/${idpiece}`);
+    
+    console.log(data0.value);
+  }catch(error){
+    console.log("ERREUR AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA "+error);
+  }
+  
+}
+  
+  
+
+
+
 async function modifierNom(){
   modifiable.value = false;
   let res = await $fetch(`/api/piece/modif/${props.pieceId}&${name.value}`, {method:"post"});

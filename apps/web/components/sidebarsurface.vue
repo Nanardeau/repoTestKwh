@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import type { DropdownMenuItem, NavigationMenuItem } from '@nuxt/ui'
 import { useSurfacesStore } from '~/stores/surfaces';
-
 const colorMode = useColorMode();
 const storeSurfaces = useSurfacesStore();
 const open = ref(false);

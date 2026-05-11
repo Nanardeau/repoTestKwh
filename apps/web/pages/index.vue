@@ -50,7 +50,7 @@
       <div class="w-5/6" :style="{display:'flex'}">
       <div :style="{ display : 'flex', flexDirection: 'column', alignSelf:'center' }">
           <UButton :color="'success'" :disabled="currentLevel! == maxLevels!" @click="level('up')"> +1 </UButton>
-          <p>{{ currentLevelName ? currentLevelName : "" }}</p>
+          <p>{{ currentLevelName === null || currentLevelName === undefined ? "inconnu" : currentLevelName }}</p>
           <UButton :color="'success'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
       </div>
       <SmplrViewer :space-id="spaceId" @mounted="setupIdList" @ready="onReady" />
@@ -115,6 +115,7 @@ const count = ref<number>(0);
 const currentLevel = ref<number>();
 const currentLevelName = ref<string>();
 const maxLevels = ref<number>(0);
+const minLevel = ref<number>(0);
 const levelNames = ref<Array<string>>([]);
 
 const openSideBar = ref(false);
@@ -124,6 +125,7 @@ const pieceIdModale = ref<string>('');
 const pieceNameModale = ref<string>('');
 
 const coordoCapteurs = ref<Array<any>>([]);
+const valeursCapteurs = ref<Array<any>>([]);
 const roomsOnLevel = ref<any>();
 const capteurSeul = ref<any>();
 
@@ -288,6 +290,7 @@ function togglePicking() {
          * Compute the total surface of the selected rooms
          */
         surface.value = [...selectedRooms.value].reduce(totalSurfaceReducer, 0);
+        console.log(surface.value);
         //surfaceTotale.value = queryClient.getRoomsOnLevel(1);
       }
     });
@@ -326,12 +329,11 @@ async function setupListLot(){
 async function level(direction: string){
   storeSurfaces.resetLevel();
   direction == 'up' ? (currentLevel.value != maxLevels.value ? currentLevel.value!++ : null) : (currentLevel.value != 0 ? currentLevel.value!-- : null);
-  console.log("LEVEL COURANT : " +currentLevel.value);
   const temp = ref<any>();
   currentLevelName.value = levelNames.value[currentLevel.value!];
 
 
-  if(currentLevel.value! >= 0){
+  if(currentLevel.value! >= minLevel.value){
     try{
       storeVar._space!.showUpToLevel(currentLevel.value!);
 
@@ -340,12 +342,18 @@ async function level(direction: string){
     }
 
     //CALCUL SURFACE À UN ÉTAGE
-    const salles = await storeVar._queryClient?.getRoomsOnLevel({spaceId: spaceId.value, levelIndex: currentLevel.value!});
+    const salles = await $fetch(`/api/piece/pieces/etage/${currentLevelName!.value}&${spaceId.value}`); 
+    console.log("SALLES ÉTAGE "+currentLevel.value);
+    console.log(currentLevelName.value);
+    console.log(salles);
     salles?.forEach((salle : any) => {
-      if(estUnePiece(salle.coordinates[0]!)){
-        storeSurfaces.incrementLevel(totalSurfaceReducer(0, salle), totalSurfaceReducer(0, salle) * 2.5)
+        if(salle.asset){
+          
+          storeSurfaces.incrementLevel(storeVar._queryClient!.getPolygonArea({polygon: salle.asset.coordinates, unit: 'sqm'}), storeVar._queryClient!.getPolygonArea({polygon: salle.asset.coordinates, unit: 'sqm'}) * 2.5)
 
-      }
+        }
+
+      
     });
   }
 }
@@ -435,28 +443,27 @@ async function colorerLot(){
 }
 
 
-function getGlobalSurface(spaceId:string){
+async function getGlobalSurface(spaceId:string){
   /*
   Essayer de récupérer toutes les rooms, utiliser totalSurfaceReducer pour chaque Room dans la liste des rooms de tous les étages.
   Là il faut que j'arrive à itérer sur le getRoomsOnLevel
   */
 
   if(storeVar._queryClient){
-    storeVar._queryClient.getSpaceLevels(spaceId).then((levels) => {
-      levels.forEach((etage) => {
+    storeVar._queryClient.getSpaceLevels(spaceId).then(async (levels) => {
+      for(const etage of levels){
         if(etage.index != levels.length - 1){ //Comparaison pour ne pas compter le toit (dernier étage)
-          storeVar._queryClient?.getRoomsOnLevel({spaceId:spaceId, levelIndex:etage.index}).then((rooms) => {
-            rooms?.forEach((room) => {
-              if(estUnePiece(room.coordinates[0]!)){
-                storeSurfaces.incrementGlobal(totalSurfaceReducer(0, room), totalSurfaceReducer(0, room) * 2.50)
-              }
+          const rooms = await $fetch(`/api/piece/pieces/etage/${etage.index}&${spaceId}`);
 
-            })
-          });
+            for(const room of rooms){
+              
+                storeSurfaces.incrementGlobal(storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}), storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}) * 2.5)
+              
 
+            }
         }
 
-      })
+      }
     });    
   }
 
@@ -515,35 +522,46 @@ function findXYminMax(coordo:any){
   return res;
 }
 async function essaiHeatMap(){
+  coordoCapteurs.value = [];
   storeVar._space!.removeDataLayer('hm');
+  storeVar._space!.removeAllDataLayers();
   roomsOnLevel.value = await $fetch(`/api/piece/pieces/etage/${currentLevel.value}&${spaceId.value}`);
-  console.log(roomsOnLevel.value);
-  roomsOnLevel?.value.forEach(async(room : any) => {
-    capteurSeul.value = await $fetch(`/api/capteur/${room.idpiece}`);
+  console.log("LEVEL COURANT : " + currentLevel.value);
 
+  for (const room of roomsOnLevel.value) {
+  const capteur = await $fetch(`/api/capteur/${room.idpiece}`);
   
-    console.log("CAPTEUR SEUL "+room.idpiece);
-    console.log(capteurSeul.value);
-    if(capteurSeul.value){
-
-      coordoCapteurs.value.push(capteurSeul.value);
-    }
-  });
+  if (capteur) {
+    const warpData = await $fetch(`/api/capteur/warp10/${room.idpiece}`);
+    coordoCapteurs.value.push([room, warpData]);
+  }
+}
 
   console.log("COORDOCAPTEURS ");
   console.log(coordoCapteurs.value);
-  coordoCapteurs.value.forEach((capteur) => {
-    if(capteur.length > 0){
-      console.log("ABCDEFGH ");
-      console.log(capteur[0]["asset"]);
-      storeVar._space!.addPointDataLayer({
-        id: "capteur",
-        shape:'sphere',
-        data : [{id: capteur[0]["idpiece"], position : capteur[0]["asset"]["position"]}],
-        color:"blue"
-      })
-    }
-  })
+
+ coordoCapteurs.value.forEach((donnee: any) => {
+  const temperature = donnee[1][0]?.["v"]?.[0]?.[1];
+  
+  if (temperature !== undefined) {
+    storeVar._space!.addPolygonDataLayer({
+      id: donnee[0]["idpiece"],
+      data: [{
+        id: donnee[0]["idpiece"],
+        coordinates: donnee[0]["asset"]["coordinates"],
+        value: temperature
+      }],
+      color: (d) => {
+        if (d.value > 25) return "red";
+        if (d.value < 20) return "green";
+        return "yellow";
+      },
+      alpha: 0.5,
+      tooltip: (d) => `Température : ${d.value}°C`,
+      onClick: (d) => console.log(d.id)
+    });
+  }
+});
 
 
   // Les coordonnées se basent sur le SOL, si elles sont dans les airs ça ne fonctionnera pas
@@ -575,34 +593,8 @@ const dataTest = [
   { id:4, value: 22, position : {levelIndex:2, x: 117.82239335232062, z: -49.51764202937709, elevation: 0.009999999776486135}},
   { id:5, value: 24, position : {levelIndex:2,x: 136.54854211915313, z: -56.12197980280458, elevation: 0.009999999776482582}},
   { id:6, value: 15, position : {levelIndex:2, x: 97.77430667927675, z: -57.3023438052912, elevation: 0.009999999776482582}},
-
-
-
 ]
-
-const dataRail = [
-  {
-    id: 'rail-complete',
-    coordinates: [
-      { levelIndex: 2, x: 120, z: -50, elevation: 0.8 },
-
-      { levelIndex: 2, x: 179.174, z: -69.572, elevation: 0.8 },
-    ]
-  }
-];
-  
-   /*const dataHm = rawData.map((d) => ({
-     id:d.x * d.value,
-     coordinates: [{
-       levelIndex: d.levelIndex,
-       x: d.x,
-       z: d.z,
-       elevation:d.elevation
-      }],
-      //value: d.value,
-    }));*/
-    
-    console.log('Heatmap data:', dataHm);
+    //console.log('Heatmap data:', dataHm);
   
     const colorScale = storeVar._smplrRef?.Color?.numericScale?.({
       name: 'RdYlGn',
@@ -610,17 +602,17 @@ const dataRail = [
       invert:true
     });
 
-    storeVar._space!.addHeatmapDataLayer({
-      id: 'hm', 
-      style: 'bar-chart',
-      data: dataHm,
-      value: (d) => d.value,
-      color: colorScale!,
-      // HEIGHT OBLIGATOIRE POUR BAR-CHART
-      height: (v:number) => (v - 15) / 4,
-      gridSize: 0.5,        
-      confidenceRadius: 9,
-    });
+    // storeVar._space!.addHeatmapDataLayer({
+    //   id: 'hm', 
+    //   style: 'bar-chart',
+    //   data: dataHm,
+    //   value: (d) => d.value,
+    //   color: colorScale!,
+    //   // HEIGHT OBLIGATOIRE POUR BAR-CHART
+    //   height: (v:number) => (v - 15) / 4,
+    //   gridSize: 0.5,        
+    //   confidenceRadius: 9,
+    // });
 
    /* POUR LES FLUX D'AIR
     storeVar._space!.addDottedPolylineDataLayer({
@@ -637,17 +629,25 @@ async function onReady({ space: s, queryClient: q, client: cli }: {queryClient: 
   /**
    * Set the space and queryClient values
    */
+
+   coordoCapteurs.value = [];
+
   levelNames.value = [];
 
-  storeVar.init(s, q, await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false}), cli);
+  storeVar.init(s, q, await $fetch(`/api/piece/pieces/${spaceId.value}`), cli);
   setupListLot();
   getGlobalSurface(spaceId.value);
-  const temp = ref<any>();
-  temp.value = (await storeVar._queryClient!.getSpaceLevels(spaceId.value));
-  maxLevels.value = temp.value.length - 1;
-  temp.value.forEach((etage:SpaceLevel) => { levelNames.value.push(etage.name) });
+  //const temp = ref<any>();
+  const { data: temp } = await useFetch(() => `/api/piece/etage/${spaceId.value}`);
+// levels sera automatiquement une Ref
+  console.log(temp.value);
+  minLevel.value = temp.value[0]["etage"];
+  temp.value.forEach((etage:any) => { levelNames.value.push(etage.etage) });
+  levelNames.value.push("Toit");
+  maxLevels.value = temp.value.length;
   currentLevel.value = maxLevels.value;
   currentLevelName.value = levelNames.value[currentLevel.value!];
+  
   storeVar.space!.hideNavigationButtons();
   storeVar.space!.hideLevelPicker();
 

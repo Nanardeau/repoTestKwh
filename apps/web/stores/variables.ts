@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 
 export const useVariablesStore = defineStore('variables', {
     state: () => { return {
+        //spc_ixzzca01
         spaceId: 'spc_c8u5tvfx',
         space: null as Space | null,
         queryClient: null as QueryClient | null,

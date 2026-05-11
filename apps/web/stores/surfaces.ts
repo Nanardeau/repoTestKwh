@@ -1,6 +1,5 @@
 import type { QueryClient, Space } from '@smplrspace/smplr-loader';
 import { defineStore } from 'pinia';
-
 export const useSurfacesStore = defineStore('surfaces', {
     state: () => ( {
         surfaceTotale : 0 as number ,

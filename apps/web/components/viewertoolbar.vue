@@ -4,7 +4,7 @@
     
     <USelect v-model="idLot" :items="idListLots" placeholder="Numéro de lot" @change="$emit('colorerLot')"/>
     
-    <UButton :color="isPickingActivated ? 'error' : 'success'" :disabled="space === null && queryClient === null" @click="$emit('togglePicking')">
+    <UButton :color="isPickingActivated ? 'error' : 'success'" @click="$emit('togglePicking')">
         {{ isPickingActivated ? "Désactiver le picking mode" : "Activer le picking" }}
     </UButton>
     <UCheckbox v-model="isMultiSelctingActivated" name="multi-select" label="Selection multiple" />
