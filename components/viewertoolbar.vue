@@ -2,7 +2,7 @@
 
     <USelect v-model="spaceId" :items="idList"  placeholder="Chargement ..." @change="$emit('afficherSpcId')"/>
     
-    <USelect v-model="idLot" :items="idListLots" placeholder="Numéro de lot" @change="$emit('colorerLot')"/>
+    <USelect v-model="idLot" :items="idListLots" placeholder="Numéro de lot" @change="$emit('colorerLot')" class="w-25"/>
     
     <UButton :color="isPickingActivated ? 'error' : 'success'" @click="$emit('togglePicking')">
         {{ isPickingActivated ? "Désactiver le picking mode" : "Activer le picking" }}

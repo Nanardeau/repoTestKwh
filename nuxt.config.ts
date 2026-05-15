@@ -22,7 +22,12 @@ export default defineNuxtConfig({
     },
     serverBundle: 'remote',
   },
-  modules: ['@nuxt/eslint', '@nuxt/ui', '@nuxt/icon'],
+  echarts:{
+    renderer:['svg', 'canvas'],
+    charts:['LineChart'],
+    components:['DatasetComponent', 'GridComponent']
+  },
+  modules: ['@nuxt/eslint', '@nuxt/ui', '@nuxt/icon', 'nuxt-echarts'],
   nitro: {
   devProxy: {
     "/api": {

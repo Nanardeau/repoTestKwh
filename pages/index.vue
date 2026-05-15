@@ -54,6 +54,7 @@
           <UButton :color="'success'" :disabled="currentLevel! == 0" @click="level('down')"> -1</UButton>
       </div>
       <SmplrViewer :space-id="spaceId" @mounted="setupIdList" @ready="onReady" />
+      <SelectData/>
     </div>
     <UBadge color="primary">
       <p id="smplr-legend"/>
@@ -107,7 +108,7 @@ const idLotsQuery = ref<Array<any>>();
 const idListLots = ref<{value: string, label:string}[]>([]);
 
 const coloredRooms = ref(new Set([]));
-const idLot = ref<string>('tous');
+const idLot = ref<string>('aucun');
 const boutonUp = ref();
 const boutonDown = ref();
 const count = ref<number>(0);
@@ -322,6 +323,7 @@ async function setupListLot(){
   if(idLotsQuery.value){
     idListLots.value = idLotsQuery.value.map((lot) => ({value:lot["idlot"], label:lot["numlot"]}));
     idListLots.value.push({value: "tous", label:"Tous"});
+    idListLots.value.push({value: "aucun", label:"Aucun"});
   }
 //.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
 
@@ -330,17 +332,17 @@ async function level(direction: string){
   storeSurfaces.resetLevel();
   direction == 'up' ? (currentLevel.value != maxLevels.value ? currentLevel.value!++ : null) : (currentLevel.value != 0 ? currentLevel.value!-- : null);
   const temp = ref<any>();
-  currentLevelName.value = levelNames.value[currentLevel.value!];
-
-
-  if(currentLevel.value! >= minLevel.value){
-    try{
-      storeVar._space!.showUpToLevel(currentLevel.value!);
-
-    }catch(e){
-      console.log("ERREUR "+e);
-    }
-
+    currentLevelName.value = levelNames.value[currentLevel.value!];
+    console.log(currentLevel.value);
+    
+    if(currentLevel.value! >= minLevel.value){
+      try{
+        storeVar._space!.showUpToLevel(currentLevel.value!);
+        
+      }catch(e){
+        console.log("ERREUR "+e);
+      }
+      
     //CALCUL SURFACE À UN ÉTAGE
     const salles = await $fetch(`/api/piece/pieces/etage/${currentLevelName!.value}&${spaceId.value}`); 
     console.log("SALLES ÉTAGE "+currentLevel.value);
@@ -350,7 +352,12 @@ async function level(direction: string){
         if(salle.asset){
           
           storeSurfaces.incrementLevel(storeVar._queryClient!.getPolygonArea({polygon: salle.asset.coordinates, unit: 'sqm'}), storeVar._queryClient!.getPolygonArea({polygon: salle.asset.coordinates, unit: 'sqm'}) * 2.5)
+          console.log(storeVar._queryClient?.getPolygonArea({polygon: salle.asset.coordinates, unit:"sqm"}));
 
+        }
+        else{
+          console.log("SALLE pas asset");
+          console.log(salle);
         }
 
       
@@ -367,7 +374,10 @@ async function colorerLot(){
     }
 
   }
-  if(idLot.value != "tous"){
+  if(idLot.value == "aucun"){
+    storeVar._space?.removeAllDataLayers();
+  }
+  else if(idLot.value != "tous"){
     let dernierLevel = 0;
     coloredRooms.value = await $fetch(`/api/piece/lots/${idLot.value}`, {method:"GET"});   
 
@@ -405,7 +415,7 @@ async function colorerLot(){
 
     }
     coloredRooms.value = new Set([]);
-    const couleurs = ['blue', 'green', 'yellow', 'orange', 'purple', 'brown', 'gray'];
+    const couleurs = ['blue', 'green', 'yellow', 'orange', 'purple', 'brown', 'magenta'];
     
     for(let i = 0 ; i < idListLots.value.length - 1 ; i++){ // -1 pour ne pas inclure le lot "tous"
       //J'itère sur chacun des lots de la liste de lots pour faire un GET des pièces de ce lot, pour ensuite les colorier
@@ -532,7 +542,7 @@ async function essaiHeatMap(){
   const capteur = await $fetch(`/api/capteur/${room.idpiece}`);
   
   if (capteur) {
-    const warpData = await $fetch(`/api/capteur/warp10/${room.idpiece}`);
+    const warpData = await $fetch(`/api/capteur/warp10/${room.idpiece}&${storeVar._typeData}`);
     coordoCapteurs.value.push([room, warpData]);
   }
 }
@@ -549,16 +559,26 @@ async function essaiHeatMap(){
       data: [{
         id: donnee[0]["idpiece"],
         coordinates: donnee[0]["asset"]["coordinates"],
+        name: donnee[0]["nompiece"],
         value: temperature
       }],
       color: (d) => {
-        if (d.value > 25) return "red";
-        if (d.value < 20) return "green";
-        return "yellow";
+        switch(storeVar._typeData){
+          case 'co2':
+            if(d.value > 600) return "red";
+            if(d.value < 400) return "green";
+            return "yellow";
+            break;
+          default:
+            if (d.value > 25) return "red";
+            if (d.value < 20) return "green";
+            return "yellow";
+            break;
+        }
       },
       alpha: 0.5,
-      tooltip: (d) => `Température : ${d.value}°C`,
-      onClick: (d) => console.log(d.id)
+      tooltip: (d) => storeVar._typeData === 'co2' ? `CO2 : ${d.value}` : `Température : ${d.value}°C`,
+      onClick: (event) =>  {openModalPiece.value = true; pieceIdModale.value = event.id; pieceNameModale.value = event.name}
     });
   }
 });

@@ -9,6 +9,7 @@ export const useVariablesStore = defineStore('variables', {
         queryClient: null as QueryClient | null,
         idPieces : [],
         smplrRef : null as Smplr | null,
+        typeData : 'temperature',
     }
     
     },
@@ -17,7 +18,8 @@ export const useVariablesStore = defineStore('variables', {
         _space: (state) => state.space,
         _queryClient: (state) => state.queryClient,
         _idPieces: (state) => state.idPieces,
-        _smplrRef : (state) => state.smplrRef
+        _smplrRef : (state) => state.smplrRef,
+        _typeData : (state) => state.typeData,
 
     },
     actions:{
@@ -32,6 +34,9 @@ export const useVariablesStore = defineStore('variables', {
         },
         setIdPieces(idPieces : any){
             this.idPieces = idPieces;
-        }
+        },
+        setTypeData(nouveauType: string){
+            this.typeData = nouveauType
+        },
     }
 })
