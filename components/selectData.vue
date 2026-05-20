@@ -9,6 +9,5 @@
 <template>
     <div>
         <URadioGroup v-model="data" :items="['temperature','co2']" class="w-max border-white rounded-md " :ui="{ item:'mt-5 mb-5', fieldset:'p-4 border rounded-lg ml-5'}" @change="storeVar.setTypeData(data)"/>
-
     </div>
 </template>

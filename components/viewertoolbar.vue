@@ -3,7 +3,7 @@
     <USelect v-model="spaceId" :items="idList"  placeholder="Chargement ..." @change="$emit('afficherSpcId')"/>
     
     <USelect v-model="idLot" :items="idListLots" placeholder="Numéro de lot" @change="$emit('colorerLot')" class="w-25"/>
-    
+    <USelect v-model="idScap" :items="listeScaps" @change="$emit('colorerScap')"/>
     <UButton :color="isPickingActivated ? 'error' : 'success'" @click="$emit('togglePicking')">
         {{ isPickingActivated ? "Désactiver le picking mode" : "Activer le picking" }}
     </UButton>
@@ -25,7 +25,7 @@
 
 </template>
 <script setup lang="ts">
-    defineEmits(['afficherSpcId', 'togglePicking', 'measure', 'essaiHeatMap', 'colorerLot', 'afficherMeubles']);
+    defineEmits(['afficherSpcId', 'togglePicking', 'measure', 'essaiHeatMap', 'colorerLot', 'afficherMeubles', 'colorerScap']);
     const spaceId = defineModel<string>('spaceId');
     const idList = defineModel<any>('idlist');
     const idLot = defineModel<string>('idLot');
@@ -37,6 +37,8 @@
     const isMeasuringActivated = defineModel('isMeasuringActivated');
     const openSideBar = defineModel('openSideBar');
     const isFurnitureShowing = defineModel('isFurnitureShowing');
-    
+    const idScap = defineModel<string>('idScap');
+    const listeScaps = defineModel<any>('listeScaps');        
+
 </script>
 

@@ -21,7 +21,6 @@
     const spaceId = defineModel('spaceId');
     const space = defineModel('space');
     const idPieces = defineModel('idPieces');
-    const { level } = useLevels(surfaceTotaleLevel, volumeTotalLevel, idPieces, currentLevel, maxLevels, currentLevelName, levelNames, 
-    queryClient, spaceId, space);
+    const { level } = useLevels();
     //useLevels(surfaceTotaleLevel, volumeTotalLevel, estUnePiece, currentLevel, maxLevels, currentLevelName, levelNames, queryClient, spaceId, space, totalSurfaceRenderer);
 </script>

@@ -15,17 +15,17 @@ const open = defineModel<boolean>('open');
 const props = defineProps(
   {pieceId: String,
     surfacePiece : Number,
-    volumePiece:Number
+    volumePiece:Number,
   }
 )
 
+const data0 = ref();
 if(open){
   //const piece = $fetch(`/api/piece/${props.pieceId}`);
   console.log("OPEN LÀ C'EST OPEN");
  
   try{
     
-    const data0 = ref();
     
     data0.value = await $fetch(`/api/capteur/warp10/${props.pieceId}`);
     
@@ -33,8 +33,9 @@ if(open){
   }catch(error){
     console.log("ERREUR "+error);
   }
-    
+
 }
+    
 
 
 const optionsChart = ref<EChartsOption>({
@@ -85,6 +86,7 @@ const pieceId = ref(props.pieceId);
       <!-- <span> {{ props.pieceId }} </span><br/> -->
       <span class="font-bold"> Surface : {{  }}</span><br/>
       <span class="font-bold">Volume : xx</span>
+      <span>{{ data0 }}</span>
       <!-- <img src="./faux.png"/> -->
 
 
