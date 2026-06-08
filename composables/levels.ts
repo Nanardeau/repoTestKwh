@@ -27,7 +27,9 @@ export const useLevels = () =>  {
       });
       
       // Ajoute "Toit"
-      storeLevels.addLevelName("Toit");
+      if(etages.value.length > 1){
+        storeLevels.addLevelName("Toit");
+      }
       
       // Initialise les paramètres du store
       const minLevel = etages.value[0]["etage"];

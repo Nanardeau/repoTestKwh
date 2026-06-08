@@ -9,7 +9,8 @@ export const useLevelsStore = defineStore('levels', {
         currentLevel: 0 as number,
         minLevel: 0 as number,
         levelNames : [] as Array<String>,
-        currentLevelName : "" as String | undefined
+        currentLevelName : "" as String | undefined,
+        roomsOnLevel : [] as Array<any>,
 
     }
     
@@ -20,6 +21,7 @@ export const useLevelsStore = defineStore('levels', {
         _minLevel: (state) => state.minLevel,
         _currentLevelName: (state) => state.currentLevelName,
         _levelNames : (state) => state.levelNames,
+        _roomsOnLevel : (state) => state.roomsOnLevel,
 
     },
     actions:{
@@ -29,11 +31,20 @@ export const useLevelsStore = defineStore('levels', {
         decrementCurrentLevel(){
             this.currentLevel --;
         },
+        setCurrentLevel(nouveauLvl:number){
+            this.currentLevel = nouveauLvl;
+        },
         setCurrentLevelName(nouveauName : string | undefined){
             this.currentLevelName = nouveauName;
         },
         addLevelName(levelName : string){
             this.levelNames.push(levelName);
+        },
+        addRoomOnLevel(room : any){
+            this.roomsOnLevel.push(room);
+        },
+        resetRoomsOnLevel(){
+            this.roomsOnLevel = [];
         },
         init(minLevel: number, maxLevels: number, currentLevel : number, currentLevelName: any){
             this.minLevel = minLevel;

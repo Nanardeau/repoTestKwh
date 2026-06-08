@@ -4,7 +4,7 @@
   </div>
   <div class="flex flex-col items-center justify-around h-screen">
     
-    <Stats :piece-id="pieceIdModale" v-model:open="openModalPiece", v-model:name="pieceNameModale"/>
+    <Stats :piece-id="pieceIdModale" v-model:open="storeStats.openModalPiece", v-model:name="pieceNameModale"/>
     
     <div class="flex items-center gap-5">
       <Viewertoolbar 
@@ -15,7 +15,6 @@
       v-model:id-list-lots="idListLots"
       v-model:is-multi-selcting-activated="isMultiSelctingActivated"
       v-model:space="space"
-      v-model:id-lot="idLot"
       v-model:idlist="idList"
       v-model:is-furniture-showing="isFurnitureShowing"
       v-model:is-measuring-activated="isMeasuringActivated"
@@ -24,30 +23,14 @@
       v-model:liste-scaps="listeScaps"
       v-model:id-scap="idScap"
 
-      @afficher-spc-id="afficherSpaceId"
-      @colorer-lot="colorerLot"
-      @essai-heat-map="essaiHeatMap"
+      @afficher-spc-id="afficherSpaceId"  
       @measure="measure"
       @toggle-picking="togglePicking"
       @afficher-meubles="afficherMeubles"
-      @colorer-scap="colorerScap"
+      
       />
 
       </div>
-
-      <!-- <UBadge color="info" variant="soft">
-        <div :style="{ display : 'flex', flexDirection: 'column' }">
-          <div :style="{ display : 'flex', flexDirection: 'column' }">
-            <h1 class="text-lg">Surface lot : {{ surfaceTotaleLot.toFixed(2) }} m²</h1> 
-            <h1 class="text-lg">Volume lot : {{ volumeTotalLot.toFixed(2) }} m<sup>3</sup></h1>
-          </div>
-          <div :style="{ display : 'flex', flexDirection: 'column' }">
-            <h1 class="text-lg">Surface lvl : {{ surfaceTotaleLevel.toFixed(2) }} m²</h1> 
-            <h1 class="text-lg">Volume lvl : {{ volumeTotalLevel.toFixed(2) }} m<sup>3</sup></h1>
-          </div>
-        </div>
-      </UBadge> -->
-
       <SidebarSurface v-model:open="openSideBar"/>
       
       <div class="w-5/6" :style="{display:'flex'}">
@@ -60,7 +43,8 @@
       <SelectData/>
     </div>
     <UBadge color="neutral">
-      <div id="legende-scap" class="text-lg"></div>
+      <div id="legende-scap-container" class="text-lg"></div>
+      <div id="legende-lot-container" class="text-lg"></div>
     </UBadge>
   
   </div>
@@ -70,18 +54,18 @@
 import Stats from '../components/stats.vue';
 import SidebarSurface from '~/components/sidebarsurface.vue';
 import type { QueryClient, SmplrCoord2d, RoomWithHoles,  Smplr,  SmplrCoord3d,  Space, SpaceLevel} from '@smplrspace/smplr-loader';
-import { useRoute } from "vue-router";
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 import App from '../app.vue';
 import {useLevels} from '../composables/levels';
+import { useDataLots } from '../composables/dataLots';
+import { useDataScap } from '#imports';
 import { useVariablesStore } from '~/stores/variables';
 import { useSurfacesStore } from '~/stores/surfaces';
 import { useLevelsStore } from '~/stores/levels';
+import { useLotsStore } from '~/stores/lots';
+import { useStatsStore } from '~/stores/stats';
 
-const pinia = createPinia();
-const app = createApp(App);
-app.use(pinia);
 //spc_c8u5tvfx
 //spc_cx1svr5x
 
@@ -90,6 +74,10 @@ app.use(pinia);
 const storeVar = useVariablesStore();
 const storeSurfaces = useSurfacesStore();
 const storeLevels = useLevelsStore();
+const storeLots = useLotsStore();
+const storeStats = useStatsStore();
+const {setupListLot} = useDataLots();
+const {setupListScap} = useDataScap();
 const spaceId = ref(storeVar._spaceId);
 //const spaceId = ref<string>('spc_c8u5tvfx');
 const idList = ref<{ value: string, label: string }[]>([]);
@@ -106,15 +94,15 @@ const surface = ref<number>(0);
 
 
 const selectedRooms = ref<Set<RoomWithHoles>>(new Set([]));
-const idLotsQuery = ref<Array<any>>();
 const idListLots = ref<{value: string, label:string}[]>([]);
 
 const idScap = ref<string>('aucun');
 const listeScaps = ref<{value: string, label:string}[]>([]);  //Reste plus qu'à faire colorerScap et c'est bon
 const listeScapsQuery = ref<Array<any>>();
+const listeSurfacesScap = ref<Array<number>>([]);
+
 
 const coloredRooms = ref(new Set([]));
-const idLot = ref<string>('aucun');
 
 const count = ref<number>(0);
 
@@ -128,18 +116,40 @@ const pieceIdModale = ref<string>('');
 const pieceNameModale = ref<string>('');
 
 const coordoCapteurs = ref<Array<any>>([]);
-const roomsOnLevel = ref<any>();
 
 const {level, estUnePiece, totalSurfaceReducer, initLevels } = useLevels();
 
+// Watch pour réinitialiser les données quand le bâtiment change
+watch(spaceId, async (newSpaceId, oldSpaceId) => {
+  if (newSpaceId && oldSpaceId && newSpaceId !== oldSpaceId) {
+    console.log("Changement de bâtiment détecté, réinitialisation des données");
+    
+    storeSurfaces.resetGlobal();
+    storeLevels.$reset();
+    storeLots.$reset();
+    storeVar.setIdLot("aucun");
+    storeVar.setSpaceId(newSpaceId);
+    storeVar.setIdPieces(await useFetch(`/api/piece/pieces/${newSpaceId}`, {server:false}));
+    
+    // Réinitialiser les variables locales
+    currentLevel.value = undefined;
+    coloredRooms.value = new Set([]);
+    idScap.value = "aucun";
+    coordoCapteurs.value = [];
+    
+    await initLevels(newSpaceId);
+    await setupListLot();
+    await setupListScap();
+    await getGlobalSurface(newSpaceId);
+    
+    idListLots.value = [...storeLots._idListLots];
+
+  }
+});
+
 async function afficherSpaceId(){
-  console.log(count.value);
-  console.log("SPACE ID");
-  console.log(spaceId.value);
-  storeVar.setIdPieces(await useFetch(`/api/piece/pieces/${spaceId.value}`, {server:false}));
-
-  storeSurfaces.resetGlobal()
-
+  console.log("Space ID changé:", spaceId.value);
+  // Le watch sur spaceId va gérer la réinitialisation des données
 }
 async function afficherMeubles(){
   isFurnitureShowing.value = !isFurnitureShowing.value;
@@ -319,187 +329,19 @@ async function setupIdList({ queryClient }: {queryClient: QueryClient, space: Sp
   idList.value = (await queryClient.listSpaces()).map((space) => ({ value: space.sid, label: space.name }));
 }
 
-async function setupListLot(){
+// async function setupListLot(){
 
-  idLotsQuery.value = await $fetch(`/api/lot/lots/space/${spaceId.value}`, {method:"GET"});
-  if(idLotsQuery.value){
-    idListLots.value = idLotsQuery.value.map((lot) => ({value:lot["idlot"], label:lot["numlot"]}));
-    idListLots.value.push({value: "tous", label:"Tous"});
-    idListLots.value.push({value: "aucun", label:"Aucun"});
-  }
-//.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
+//   idLotsQuery.value = await $fetch(`/api/lot/lots/space/${spaceId.value}`, {method:"GET"});
+//   if(idLotsQuery.value){
+//     idListLots.value = idLotsQuery.value.map((lot) => ({value:lot["idlot"], label:lot["numlot"]}));
+//     idListLots.value.push({value: "tous", label:"Tous"});
+//     idListLots.value.push({value: "aucun", label:"Aucun"});
+//   }
+// //.forEach((lot) => ({name:lot["numlot"], value:lot["idlot"]}));
 
-}
-async function setupListScap(){
-  listeScapsQuery.value = await $fetch(`/api/scap/${spaceId.value}`);
-  if(listeScapsQuery.value){
-    listeScaps.value = listeScapsQuery.value.map((scap) => ({value:scap["codescap"], label:scap["codescap"]}));
-    listeScaps.value.push({value:'tous', label:'Tous'});
-    listeScaps.value.push({value:'aucun', label:'Aucun'});
-
-  }
-}
+// }
 
 
-async function colorerScap(){
-  idLot.value = "aucun";
-  storeVar._space?.removeAllDataLayers();
-  console.log("COLORER SCAP");
-  coloredRooms.value = new Set([]);
-  const couleurs = ['blue', 'green', 'yellow', 'orange', 'purple', 'brown', 'magenta'];
-  const labelsLegende = ref<{color : string , label : string}[]>([]);
-  for(let i = 0 ; i < idListLots.value.length ; i++){
-    if(storeVar._space != null){
-      storeVar._space!.removeDataLayer('scap' +i);
-    }
-  }
-  if(idScap.value != "tous" && idScap.value != "aucun"){
-
-    coloredRooms.value = await $fetch(`/api/scap/piece/${spaceId.value}&${idScap.value}`, {method: "GET"});
-    
-    console.log(coloredRooms.value);
-    colorerPieces('scap', couleurs.pop());
-  }
-  else if(idScap.value == "tous"){
-    for(let i = 0 ; i < listeScaps.value.length ; i++){
-      //Faire les coloredRooms pour chaque SCAP
-      
-      coloredRooms.value = await $fetch(`/api/scap/piece/${spaceId.value}&${listeScaps.value[i]!.value}`, {method:"GET"});
-      console.log(i);
-      let couleur = couleurs.pop()!;
-      if(listeScaps.value[i]!.value != "tous" && listeScaps.value[i]!.value != "aucun"){
-        labelsLegende.value.push({color: couleur, label: listeScaps.value[i]!.value});
-        
-      }
-      colorerPieces('scap' + i, couleur);
-    }
-    //LA LÉGENDE
-    storeVar._smplrRef?.Color.drawColorSwatches({
-    containerId: 'legende-scap',
-    swatches: labelsLegende.value,
-    size:25
-  });
-  }
-
-}
-async function colorerLot(){
-  idScap.value = "aucun";
-  coloredRooms.value = new Set([]);
-  storeSurfaces.resetLot();
-  storeVar._space?.removeAllDataLayers();
-  if(idLot.value == "aucun"){
-    storeVar._space?.removeAllDataLayers();
-  }
-  else if(idLot.value != "tous"){
-    let dernierLevel = 0;
-    coloredRooms.value = await $fetch(`/api/piece/lots/${idLot.value}`, {method:"GET"});   
-
-      coloredRooms.value.forEach((room: any) => {
-        if(room["asset"] !== null){
-
-        
-        const coordo = ref<SmplrCoord2d[]>([]);
-          room["asset"]["coordinates"][0].forEach((point:any) => {
-            coordo.value.push({x: point["x"], z: point["z"], levelIndex:room["asset"]["levelIndex"]});
-          });
-          if(room["asset"]["levelIndex"] > dernierLevel){
-            dernierLevel = room["asset"]["levelIndex"];
-          }
-          const temp = storeVar._queryClient!.getPolygonArea({polygon: coordo.value, unit: 'sqm'});
-          storeSurfaces.incrementLot(temp, temp * 2.50);
-
-      }
-    });
-        storeVar._space!.showUpToLevel(dernierLevel);
-        currentLevel.value = dernierLevel;
-        storeLevels.setCurrentLevelName(String(storeLevels._levelNames[dernierLevel]));
-        storeVar._space!.addPolygonDataLayer({
-          id : 'lot',
-          data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"], name:room["nompiece"], id:room["idpiece"] })),
-          color:'yellow',
-          alpha:0.5,
-          tooltip: d => `${d.name}`,
-          onClick: (event) =>  {openModalPiece.value = true; pieceIdModale.value = event.id; pieceNameModale.value = event.name; }
-        }); 
-  }
-  else{
-    if(storeVar._space != null){
-      storeVar._space!.removeDataLayer('lot');
-
-    }
-    coloredRooms.value = new Set([]);
-    const couleurs = ['blue', 'green', 'yellow', 'orange', 'purple', 'brown', 'magenta'];
-    
-    for(let i = 0 ; i < idListLots.value.length - 1 ; i++){ // -1 pour ne pas inclure le lot "tous"
-      //J'itère sur chacun des lots de la liste de lots pour faire un GET des pièces de ce lot, pour ensuite les colorier
-      coloredRooms.value = (await $fetch(`/api/piece/lots/${idListLots.value[i]!.value}`, {method:"GET"}));
-      coloredRooms.value.forEach((room:any) => {
-        const coordo = ref<SmplrCoord2d[]>([]);
-          room["asset"]["coordinates"][0].forEach((point: any) => {
-            
-            coordo.value.push({x: point["x"], z: point["z"], levelIndex:room["asset"]["levelIndex"]});
-          });
-
-          /*
-          * Je passe par une variable temporaire pour adapter si jamais on a la taille de chaque mur
-          */
-
-          const temp = storeVar._queryClient!.getPolygonArea({polygon: coordo.value, unit: 'sqm'});
-          storeSurfaces.incrementLot(temp, temp * 2.50);  // Ici, 2,5m mais si jamais ça change on n'aura qu'à mettre la taille des murs
-      });
-
-      const couleur = couleurs.pop(); // Améliorer ça, que ça boucle sur les couleurs plutôt que d'en prévoir un nombre fini
-      // i % 2 == 0 ? 'blue' : 'success';    
-      storeVar._space!.addPolygonDataLayer({
-        id : 'lots'+i,
-        data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"], name:room["nompiece"], id:room["idpiece"], lot: idListLots.value[i]!.label})),
-        tooltip: d => `${d.lot == '1' ? 'Commun' : 'Lot ' + d.lot} - ${d.name}`,
-        onClick: (e) => {openModalPiece.value = true;  pieceIdModale.value = e.id; pieceNameModale.value = e.name},
-        color: couleur,
-        alpha:0.5,
-        
-    }); 
-    }
-  }
-
-  
-}
-function colorerPieces(idPolygon: string, couleur:any){
-  let dernierLevel = 0;
- // Améliorer ça, que ça boucle sur les couleurs plutôt que d'en prévoir un nombre fini
-
-  coloredRooms.value.forEach((room: any) => {
-        if(room["asset"] !== null){
-        
-        const coordo = ref<SmplrCoord2d[]>([]);
-          room["asset"]["coordinates"][0].forEach((point:any) => {
-            coordo.value.push({x: point["x"], z: point["z"], levelIndex:room["asset"]["levelIndex"]});
-          });
-          if(room["asset"]["levelIndex"] > dernierLevel){
-            dernierLevel = room["asset"]["levelIndex"];
-          }
-          const temp = storeVar._queryClient!.getPolygonArea({polygon: coordo.value, unit: 'sqm'});
-          storeSurfaces.incrementLot(temp, temp * 2.50);
-
-      }
-
-    });
-    
-        storeVar._space!.showUpToLevel(dernierLevel);
-        currentLevel.value = dernierLevel;
-        storeLevels.setCurrentLevelName(String(storeLevels._levelNames[dernierLevel]));
-        storeVar._space!.addPolygonDataLayer({
-          id : idPolygon,
-          data: [...coloredRooms.value].map((room) => ({coordinates : room["asset"]["coordinates"], name:room["nompiece"], id:room["idpiece"], scap: room["codescap"], lot: room["numlot"]})),
-          color:couleur,
-          alpha:0.5,
-          tooltip: d => `${'Pièce ' + d.name + d.scap + ' Lot '+ d.lot}`,
-          onClick: (event) =>  {openModalPiece.value = true; pieceIdModale.value = event.id; pieceNameModale.value = event.name;}
-        
-        });
-
-
-      }
 
 async function getGlobalSurface(spaceId:string){
   /*
@@ -514,8 +356,15 @@ async function getGlobalSurface(spaceId:string){
           const rooms = await $fetch(`/api/piece/pieces/etage/${etage.index}&${spaceId}`);
 
             for(const room of rooms){
-              
-                storeSurfaces.incrementGlobal(storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}), storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}) * 2.5)
+                if(room.surface){
+                  console.log("room surface en bdd, calcul");
+                  storeSurfaces.incrementGlobal(room.surface, room.surface * 2.5);
+                }
+                else{
+                  console.log("calcul par taille polygone");
+                  storeSurfaces.incrementGlobal(storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}), storeVar._queryClient!.getPolygonArea({polygon: room.asset.coordinates, unit: 'sqm'}) * 2.5)
+
+                }
               
 
             }
@@ -553,118 +402,6 @@ function findXYminMax(coordo:any){
   })
   return res;
 }
-async function essaiHeatMap(){
-  coordoCapteurs.value = [];
-  storeVar._space!.removeDataLayer('hm');
-  storeVar._space!.removeAllDataLayers();
-  roomsOnLevel.value = await $fetch(`/api/piece/pieces/etage/${currentLevel.value}&${spaceId.value}`);
-  console.log("LEVEL COURANT : " + currentLevel.value);
-
-  for (const room of roomsOnLevel.value) {
-  const capteur = await $fetch(`/api/capteur/${room.idpiece}`);
-  
-  if (capteur) {
-    const warpData = await $fetch(`/api/capteur/warp10/${room.idpiece}&${storeVar._typeData}`);
-    coordoCapteurs.value.push([room, warpData]);
-  }
-}
-
-  console.log("COORDOCAPTEURS ");
-  console.log(coordoCapteurs.value);
-
- coordoCapteurs.value.forEach((donnee: any) => {
-  const temperature = donnee[1][0]?.["v"]?.[0]?.[1];
-  
-  if (temperature !== undefined) {
-    storeVar._space!.addPolygonDataLayer({
-      id: donnee[0]["idpiece"],
-      data: [{
-        id: donnee[0]["idpiece"],
-        coordinates: donnee[0]["asset"]["coordinates"],
-        name: donnee[0]["nompiece"],
-        value: temperature
-      }],
-      color: (d) => {
-        switch(storeVar._typeData){
-          case 'co2':
-            if(d.value > 1000) return "red";
-            if(d.value < 800) return "green";
-            return "yellow";
-            break;
-          default:
-            if (d.value > 30) return "red";
-            if (d.value < 15) return "yellow";
-            return "green";
-            break;
-        }
-      },
-      alpha: 0.5,
-      tooltip: (d) => storeVar._typeData === 'co2' ? `CO2 : ${d.value}` : `Température : ${d.value}°C`,
-      onClick: (event) =>  {openModalPiece.value = true; pieceIdModale.value = event.id; pieceNameModale.value = event.name}
-    });
-  }
-});
-
-
-  // Les coordonnées se basent sur le SOL, si elles sont dans les airs ça ne fonctionnera pas
-const rawData = [     
-  { id:1, levelIndex: 2, x: 182.126, z: -54.355, value: 17 },
-  { id:2, levelIndex: 2, x: 176.879, z: -55.209, value: 25 },
-  { id:3, levelIndex: 2,  x: 195.989, z: -60.264, value: 20 },
-  { id:4, levelIndex: 2, x: 193.524, z: -57.278, value: 22 },
-  { id:5, levelIndex: 2, x: 176.262, z: -55.732, value: 27 },
-  { id:6, levelIndex: 2, x: 181.227, z: -53.254, value: 15 },
-  { id:7, levelIndex: 2, x: 172.337, z: -56.399, value: 17 },
-  { id:8, levelIndex: 2, x: 193.144, z: -63.587, value: 17 },
-];
-
-const dataHm = rawData.map((d) => ({
-  id: d.id,
-  position: {
-    levelIndex: d.levelIndex,
-    x: d.x,
-    z: d.z,
-  },
-  value: d.value,
-}));
-
-const dataTest = [
-  { id:1, value: 17, position : {levelIndex:2, x: 120.72363861531221, z: -55.37731272654325, elevation: 0.009999999776482582}},
-  { id:2, value: 19, position : {levelIndex:2, x: 120.31616658822531, z: -40.32848595282147, elevation: 0.009999999776486135}},
-  { id:3, value: 20, position : {levelIndex:2, x: 117.51274810528558, z: -38.38687380878737, elevation: 0.009999999776482582}},
-  { id:4, value: 22, position : {levelIndex:2, x: 117.82239335232062, z: -49.51764202937709, elevation: 0.009999999776486135}},
-  { id:5, value: 24, position : {levelIndex:2,x: 136.54854211915313, z: -56.12197980280458, elevation: 0.009999999776482582}},
-  { id:6, value: 15, position : {levelIndex:2, x: 97.77430667927675, z: -57.3023438052912, elevation: 0.009999999776482582}},
-]
-    //console.log('Heatmap data:', dataHm);
-  
-    const colorScale = storeVar._smplrRef?.Color?.numericScale?.({
-      name: 'RdYlGn',
-      domain: [15, 25],
-      invert:true
-    });
-
-    // storeVar._space!.addHeatmapDataLayer({
-    //   id: 'hm', 
-    //   style: 'bar-chart',
-    //   data: dataHm,
-    //   value: (d) => d.value,
-    //   color: colorScale!,
-    //   // HEIGHT OBLIGATOIRE POUR BAR-CHART
-    //   height: (v:number) => (v - 15) / 4,
-    //   gridSize: 0.5,        
-    //   confidenceRadius: 9,
-    // });
-
-   /* POUR LES FLUX D'AIR
-    storeVar._space!.addDottedPolylineDataLayer({
-      id:'flux',
-      data:dataRail,
-      animation:'railway',
-      speed:0.5,
-    }); */
-
-}
 
 
 async function onReady({ space: s, queryClient: q, client: cli }: {queryClient: QueryClient, space: Space, client: Smplr}) {
@@ -677,12 +414,13 @@ async function onReady({ space: s, queryClient: q, client: cli }: {queryClient: 
 
   storeVar.init(s, q, await $fetch(`/api/piece/pieces/${spaceId.value}`), cli);
   await initLevels(spaceId.value);
-  setupListLot();
-  setupListScap();
-  getGlobalSurface(spaceId.value);
-  //const temp = ref<any>();
-// levels sera automatiquement une Ref
-
+  await setupListLot();
+  await setupListScap();
+  await getGlobalSurface(spaceId.value);
+  
+  // Synchroniser idListLots avec le store et initialiser currentLevel
+  idListLots.value = [...storeLots._idListLots];
+  currentLevel.value = storeLevels._currentLevel;
   
   storeVar.space!.hideNavigationButtons();
   storeVar.space!.hideLevelPicker();

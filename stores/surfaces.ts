@@ -8,6 +8,8 @@ export const useSurfacesStore = defineStore('surfaces', {
         volumeTotalLevel : 0 as number,
         surfaceTotaleLot : 0 as number,
         volumeTotalLot : 0 as number,        
+        surfaceTotaleScap : 0 as number,
+        volumeTotalScap : 0 as number,
     }
     
 ),
@@ -17,7 +19,9 @@ export const useSurfacesStore = defineStore('surfaces', {
         _surfaceTotaleLevel: (state) => state.surfaceTotaleLevel,
         _volumeTotalLevel : (state) => state.volumeTotalLevel,
         _surfaceTotaleLot: (state) => state.surfaceTotaleLot,
-        _volumeTotalLot: (state) => state.volumeTotalLot,        
+        _volumeTotalLot: (state) => state.volumeTotalLot,     
+        _surfaceTotaleScap: (state) => state.surfaceTotaleScap,
+        _volumeTotalScap: (state) => state.volumeTotalScap,   
 
     },
     actions:{
@@ -25,15 +29,17 @@ export const useSurfacesStore = defineStore('surfaces', {
             this.surfaceTotale = 0;
             this.surfaceTotaleLevel = 0;
             this.surfaceTotaleLot = 0;
+            this.surfaceTotaleScap = 0;
         },
         resetVolumes(){
             this.volumeTotal = 0;
             this.volumeTotalLevel = 0;
             this.volumeTotalLot = 0;
+            this.volumeTotalScap = 0;
         },
         resetGlobal(){
-            this.surfaceTotale = 0;
-            this.volumeTotal = 0;
+            this.resetSurfaces();
+            this.resetVolumes();
         },
         resetLevel(){
             this.surfaceTotaleLevel = 0;
@@ -54,6 +60,10 @@ export const useSurfacesStore = defineStore('surfaces', {
         incrementLot(surf:number, vol:number){
             this.surfaceTotaleLot += surf;
             this.volumeTotalLot += vol;
+        },
+        incrementScap(surf: number, vol:number){
+            this.surfaceTotaleScap += surf;
+            this.volumeTotalScap += vol;
         }
     }
 

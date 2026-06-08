@@ -1,9 +1,7 @@
 <script setup lang="ts">
     import { useVariablesStore } from '~/stores/variables';
     const storeVar = useVariablesStore();
-    const data = ref<string>("temperature");
-
-    
+    const data = ref<string>("temperature");  
 
 </script>
 <template>
