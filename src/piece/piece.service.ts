@@ -9,7 +9,9 @@ export class PieceService {
   findAll() {
     return this.prisma.piece.findMany();
   }
-
+  findPieceId(pieceId: string){
+    return this.prisma.piece.findUnique({where: {idpiece : pieceId}});
+  }
   async findAllSpaceId(spaceId: string){
 
     const idbatCherche = await this.prisma.batiment.findFirst({ where : { idsmplr : spaceId } });
@@ -31,6 +33,30 @@ export class PieceService {
         asset: {not: JsonNull}
         },
     });
+  }
+  async findRoomsLevel(levelIndex: string, spaceId: string){
+    const idbatCherche = await this.prisma.batiment.findFirst({ where : { idsmplr : spaceId } });
+
+    return this.prisma.piece.findMany({
+      where: { etage: parseInt(levelIndex), idbat : idbatCherche?.idbat }
+    })
+  }
+  async findEtages(spaceId : string){
+    const idBatCherche = await this.prisma.batiment.findFirst({where: {idsmplr : spaceId}});
+
+    if (!idBatCherche) return [];
+    return this.prisma.piece.groupBy({
+      by: ['etage'],
+      _count:{idpiece: true},
+      where: {idbat: idBatCherche.idbat, asset: {not: JsonNull}},
+      orderBy : {etage : 'asc'}
+    });
+  }
+  changeRoomName(pieceId: string, newName: string){
+    return this.prisma.piece.update({
+      where : {idpiece: pieceId},
+      data: {nompiece: newName}
+    })
   }
   /*
   * Dans la BDD on a une colonne "idsmplr dans la table Bâtiment. Il faut que je trouve les pièces qui ont l'idbat dans lequel l'idsmplr = spaceId"

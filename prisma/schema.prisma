@@ -1,7 +1,8 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["views"]
+  moduleFormat    = "cjs"
 }
 
 datasource db {
@@ -35,7 +36,7 @@ model batiment {
   datecreauib     DateTime       @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
   mixte           Boolean        @default(false)
   surfacecommune  Float          @default(0)
-  codefacturation String         @db.VarChar(80)
+  codefacturation String?        @db.VarChar(80)
   site            site           @relation(fields: [idsite], references: [idsite], onDelete: Cascade)
   gerebat         gerebat[]
   intervention    intervention[]
@@ -167,6 +168,7 @@ model client {
   historiquelot_historiquelot_identitelocalelocataireToclient historiquelot[]       @relation("historiquelot_identitelocalelocataireToclient")
   historiquelot_historiquelot_identitelocaleproprioToclient   historiquelot[]       @relation("historiquelot_identitelocaleproprioToclient")
   historiquesiret                                             historiquesiret[]
+  infoformulaire                                              infoformulaire[]
   infosrie                                                    infosrie[]
   lot_lot_identitelocaleproprioToclient                       lot[]                 @relation("lot_identitelocaleproprioToclient")
   lot_lot_identitelocaleToclient                              lot[]                 @relation("lot_identitelocaleToclient")
@@ -913,7 +915,7 @@ model site {
   codestation         String              @db.Char(8)
   departement         String              @db.VarChar(3)
   codepostal          String              @db.Char(5)
-  codefacturation     String              @db.VarChar(80)
+  codefacturation     String?             @db.VarChar(80)
   batiment            batiment[]
   couvre              couvre[]
   commune             commune             @relation(fields: [codecommune, codepostal], references: [codecommune, codepostal], onDelete: Cascade, map: "_site__commune_codecommune_codepostal_fk")
@@ -963,6 +965,17 @@ model adonis_schema {
 
 model adonis_schema_versions {
   version Int @id
+}
+
+model infoformulaire {
+  id              String   @id(map: "_infoformulaire_pk")
+  identitelocale  String?  @db.Char(5)
+  statut          String   @db.VarChar(50)
+  datepublication DateTime @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Paris'::text)")) @db.Timestamp(6)
+  reponse         Json?    @db.Json
+  client          client?  @relation(fields: [identitelocale], references: [identitelocale], onDelete: Cascade, map: "_infoformulaire__client_identitelocale_fk")
+
+  @@map("_infoformulaire")
 }
 
 /// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
@@ -1080,3 +1093,134 @@ model adonis_schema_versions {
 /// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
 // model directus_versions {
 // }
+
+view bacs {
+  idbat            String? @db.VarChar(80)
+  nombat           String? @db.VarChar(100)
+  surface_totale   String? @db.VarChar
+  puissance_totale BigInt?
+  bacs             Int?
+}
+
+view public_batiment {
+  idbat                       String?   @db.VarChar(80)
+  nombat                      String?   @db.VarChar(100)
+  nomvoie                     String?   @db.VarChar(200)
+  codepostal                  String?   @db.Char(5)
+  nomcommune                  String?   @db.VarChar(200)
+  cmpltadresse                String?   @db.VarChar(200)
+  longitude                   Float?
+  latitude                    Float?
+  idsite                      String?   @db.VarChar(80)
+  nomsite                     String?   @db.VarChar(100)
+  anneecref                   Int?
+  total_consommation_batiment Float?
+  idsmplr                     String?   @db.VarChar(50)
+  datecreauib                 DateTime? @db.Timestamp(6)
+  mixte                       Boolean?
+  surface_totale              String?   @db.VarChar
+
+  @@map("batiment")
+}
+
+view public_capteur {
+  nommarque        String?  @db.VarChar(25)
+  referenceinterne String?  @db.VarChar(50)
+  nommodele        String?  @db.VarChar(200)
+  nomchirpstack    String?  @db.VarChar
+  deveui           String?  @db.VarChar(16)
+  en_stock         String?
+  esthorsservice   Boolean?
+
+  @@map("capteur")
+}
+
+view public_compteur {
+  idsite             String?   @db.VarChar(80)
+  nomsite            String?   @db.VarChar(100)
+  idbat              String?   @db.VarChar(80)
+  nombat             String?   @db.VarChar(100)
+  idcompteur         String?   @db.VarChar(50)
+  intitule           String?   @db.VarChar(60)
+  datedebut          DateTime? @db.Timestamp(6)
+  datefin            DateTime? @db.Timestamp(6)
+  coefmulti          Float?
+  usage              String?   @db.VarChar(50)
+  estsouscompteur    Boolean?
+  idressource        Int?
+  nomressource       String?   @db.VarChar(80)
+  puissancesouscrite Int?
+  iddistributeur     Int?
+  nomdistributeur    String?   @db.VarChar(100)
+  nomvoie            String?   @db.VarChar(200)
+
+  @@map("compteur")
+}
+
+view deveuiintervention {
+  deveui           String?   @db.VarChar(64)
+  dateintervention DateTime? @db.Timestamp(6)
+  typeintervention String?   @db.VarChar(20)
+  table            String?
+  id               String?   @db.VarChar
+  nommodele        String?   @db.VarChar(200)
+  idressource      Int?
+  nomressource     String?   @db.VarChar(80)
+  unite            String?   @db.VarChar(20)
+  etalonnage       Float?
+  asset            Json?     @db.Json
+}
+
+view immo_capteurs {
+  idintervention       Int?
+  nommarque            String?   @db.VarChar(25)
+  nommodele            String?   @db.VarChar(200)
+  referencefournisseur String?   @db.VarChar(200)
+  deveui               String?   @db.VarChar
+  idpiece              String?   @db.VarChar
+  idcompteur           String?   @db.VarChar
+  idsite               String?   @db.VarChar
+  nom_site             String?   @db.VarChar
+  hs                   Boolean?
+  idlocale             String?   @db.Char
+  id                   String?   @db.VarChar
+  denomination         String?   @db.VarChar
+  nomvoie              String?   @db.VarChar
+  code_postal          String?   @db.Char
+  ville                String?   @db.VarChar
+  datearrivee          DateTime? @db.Timestamp(6)
+  statut               String?
+}
+
+view public_piece {
+  idpiece               String?  @db.VarChar(80)
+  idbat                 String?  @db.VarChar(200)
+  nombat                String?  @db.VarChar(100)
+  nompiece              String?  @db.VarChar(100)
+  nomgenerique          String?  @db.VarChar(50)
+  surface               Float?
+  codescap              String?  @db.VarChar(10)
+  exterieure            Boolean?
+  numlot                String?  @db.VarChar(30)
+  asset                 Json?    @db.Json
+  locatairepiece        String?  @db.Char(5)
+  identitelocataire     String?  @db.VarChar(50)
+  nomlocataire          String?  @db.VarChar(100)
+  chauffageoperat       Boolean?
+  refroidissementoperat Boolean?
+  logistiquefroidoperat Boolean?
+  froidcommercialoperat Boolean?
+  conservationoperat    Boolean?
+  etage                 Int?
+  typeexploitation      String?  @db.VarChar(30)
+  propriolot            String?  @db.Char(5)
+  identiteproprio       String?  @db.VarChar(50)
+  nomproprio            String?  @db.VarChar(100)
+  faitpartiede          String?  @db.Char(5)
+  identite              String?  @db.VarChar(50)
+  denomination          String?  @db.VarChar(100)
+  qualiteassujettie     String?  @db.VarChar(25)
+  typelot               String?  @db.VarChar(30)
+
+  @@map("piece")
+}
