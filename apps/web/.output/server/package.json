@@ -23,8 +23,9 @@
     "@vueuse/shared": "13.9.0",
     "birpc": "2.9.0",
     "consola": "3.4.2",
+    "dayjs": "1.11.20",
     "debug": "4.4.3",
-    "devalue": "5.7.1",
+    "devalue": "5.8.1",
     "echarts": "6.0.0",
     "entities": "7.0.1",
     "estree-walker": "2.0.2",
@@ -42,6 +43,7 @@
     "unhead": "2.1.13",
     "vue": "3.5.33",
     "vue-bundle-renderer": "2.2.0",
+    "vue-echarts": "8.0.1",
     "vue-router": "5.0.6",
     "zrender": "6.0.0"
   }

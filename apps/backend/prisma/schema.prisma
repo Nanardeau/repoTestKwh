@@ -1,0 +1,1226 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["views"]
+  moduleFormat    = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model alimente {
+  idcompteur String   @db.VarChar(50)
+  idpiece    String   @db.VarChar(80)
+  compteur   compteur @relation(fields: [idcompteur], references: [idcompteur], onDelete: Cascade)
+  piece      piece    @relation(fields: [idpiece], references: [idpiece], onDelete: Cascade)
+
+  @@id([idcompteur, idpiece])
+  @@index([idcompteur], map: "_alimente__index_idcompteur")
+  @@index([idpiece], map: "_alimente__index_idpiece")
+  @@map("_alimente")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model batiment {
+  idbat           String         @id @db.VarChar(80)
+  nombat          String         @db.VarChar(100)
+  longitude       Float
+  latitude        Float
+  nomvoie         String         @db.VarChar(200)
+  cmpltadresse    String?        @db.VarChar(200)
+  idsite          String         @db.VarChar(80)
+  anneecref       Int?
+  idsmplr         String?        @db.VarChar(50)
+  datecreauib     DateTime       @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  mixte           Boolean        @default(false)
+  surfacecommune  Float          @default(0)
+  codefacturation String?        @db.VarChar(80)
+  site            site           @relation(fields: [idsite], references: [idsite], onDelete: Cascade)
+  gerebat         gerebat[]
+  intervention    intervention[]
+  lot             lot[]
+  repartition     repartition[]
+
+  @@index([nomvoie], map: "_batiment__index_adresse")
+  @@index([idbat], map: "_batiment__index_idbat")
+  @@index([nombat], map: "_batiment__index_nombat")
+  @@map("_batiment")
+}
+
+model batterie {
+  idbatterie  String        @id @db.VarChar(64)
+  nombatterie String        @db.VarChar(120)
+  voltage     Float
+  modele      modele[]
+  secomposede secomposede[]
+
+  @@map("_batterie")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cabs {
+  codescap       String @db.VarChar(10)
+  cvcetalon      Float
+  useetalon      Float
+  decennie       String @db.Char(9)
+  zonesref       String @db.VarChar(15)
+  altituderefmax Float
+  altituderefmin Float
+  scap           scap   @relation(fields: [codescap], references: [codescap], onDelete: Cascade)
+
+  @@id([codescap, decennie, zonesref, altituderefmax, altituderefmin])
+  @@map("_cabs")
+}
+
+model cap {
+  codeactivite String @id @db.VarChar(7)
+  nomactivite  String @db.VarChar(300)
+  scap         scap[]
+
+  @@map("_cap")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model capteur {
+  deveui              String               @id @db.VarChar(16)
+  appkey              String?              @db.Char(32)
+  datearrivee         DateTime             @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  idcommande          String?              @db.VarChar(16)
+  esthorsservice      Boolean              @default(false)
+  etat                String               @default("FONCTIONNEL") @db.VarChar(15)
+  idelement           Int?
+  referenceinterne    String?              @db.VarChar(50)
+  commandefournisseur commandefournisseur? @relation(fields: [idcommande], references: [idfacture], onDelete: Cascade)
+  elements            elements?            @relation(fields: [idelement], references: [idelement], onDelete: NoAction)
+  modele              modele?              @relation(fields: [referenceinterne], references: [referenceinterne], onDelete: Cascade)
+  estlie              estlie[]
+  intervention        intervention[]
+  reglage             reglage[]
+
+  @@index([datearrivee], map: "_capteur__index_datearrivee")
+  @@index([deveui], map: "_capteur__index_deveui")
+  @@index([referenceinterne], map: "_capteur__index_referenceinterne")
+  @@map("_capteur")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model catalogueprestation {
+  idprestation   String @id @db.Char(7)
+  nomprestation  String @db.VarChar(100)
+  prixprestation Float
+  item           item[]
+
+  @@map("_catalogueprestation")
+}
+
+model changement {
+  newidentitelocale                           String   @db.Char(5)
+  oldidentitelocale                           String   @db.Char(5)
+  datechangement                              DateTime @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  client_changement_newidentitelocaleToclient client   @relation("changement_newidentitelocaleToclient", fields: [newidentitelocale], references: [identitelocale], onDelete: NoAction)
+  client_changement_oldidentitelocaleToclient client   @relation("changement_oldidentitelocaleToclient", fields: [oldidentitelocale], references: [identitelocale], onDelete: NoAction)
+
+  @@id([newidentitelocale, oldidentitelocale, datechangement])
+  @@map("_changement")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model charge {
+  idcharge    Int           @id @default(dbgenerated("nextval('_charge_idcharge_seq'::regclass)"))
+  nomcharge   String        @db.VarChar(100)
+  estcommune  Boolean       @default(false)
+  tantiemecle Float
+  reparti     reparti[]
+  repartition repartition[]
+
+  @@index([nomcharge], map: "_charge__index_nomcharge")
+  @@map("_charge")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model client {
+  identitelocale                                              String                @id @db.Char(5)
+  identite                                                    String                @db.VarChar(50)
+  denomination                                                String                @db.VarChar(100)
+  etat                                                        String                @db.VarChar(25)
+  cascomplexe                                                 Boolean               @default(false)
+  datecrea                                                    DateTime              @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  siren                                                       String?               @db.Char(9)
+  siret                                                       String?               @db.Char(14)
+  type                                                        String                @db.VarChar(50)
+  nomvoie                                                     String                @db.VarChar(200)
+  cmpltadresse                                                String?               @db.VarChar(200)
+  codecommune                                                 String                @db.VarChar(5)
+  idgestionnaire                                              String?               @db.Char(5)
+  codepostal                                                  String                @db.Char(5)
+  changement_changement_newidentitelocaleToclient             changement[]          @relation("changement_newidentitelocaleToclient")
+  changement_changement_oldidentitelocaleToclient             changement[]          @relation("changement_oldidentitelocaleToclient")
+  commune                                                     commune               @relation(fields: [codecommune, codepostal], references: [codecommune, codepostal], onDelete: Cascade, map: "_client__commune_codecommune_codepostal_fk")
+  entitegestionnaire                                          entitegestionnaire?   @relation(fields: [idgestionnaire], references: [idgestionnaire], onDelete: Cascade)
+  declaoperat                                                 declaoperat[]
+  declarationannuelle                                         declarationannuelle[]
+  encadre_encadre_identitelocalefournisseurToclient           encadre[]             @relation("encadre_identitelocalefournisseurToclient")
+  encadre_encadre_identitelocalereceveurToclient              encadre[]             @relation("encadre_identitelocalereceveurToclient")
+  gereclient                                                  gereclient[]
+  historiqueetat                                              historiqueetat[]
+  historiquelot_historiquelot_identitelocalelocataireToclient historiquelot[]       @relation("historiquelot_identitelocalelocataireToclient")
+  historiquelot_historiquelot_identitelocaleproprioToclient   historiquelot[]       @relation("historiquelot_identitelocaleproprioToclient")
+  historiquesiret                                             historiquesiret[]
+  infoformulaire                                              infoformulaire[]
+  infosrie                                                    infosrie[]
+  lot_lot_identitelocaleproprioToclient                       lot[]                 @relation("lot_identitelocaleproprioToclient")
+  lot_lot_identitelocaleToclient                              lot[]                 @relation("lot_identitelocaleToclient")
+  mandat                                                      mandat[]
+  observationdeet                                             observationdeet[]
+  piece                                                       piece[]
+
+  @@index([identite], map: "_client__index_identite")
+  @@index([identitelocale], map: "_client__index_identitelocale")
+  @@map("_client")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model codecadastral {
+  codecadastral                              String   @id @db.Char(11)
+  estprincipale                              Boolean  @default(false)
+  surface                                    Float
+  departement                                String   @db.VarChar(3)
+  couvre_couvre_codecadastralTocodecadastral couvre[] @relation("couvre_codecadastralTocodecadastral")
+
+  @@map("_codecadastral")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model commandefournisseur {
+  idfacture     String        @id @db.VarChar(16)
+  nommarque     String        @db.VarChar(25)
+  datecommande  DateTime      @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  dureegarantie Int
+  taux_tva      Float         @default(20)
+  capteur       capteur[]
+  marque        marque        @relation(fields: [nommarque], references: [nommarque], onDelete: Cascade)
+  passerelle    passerelle[]
+  secomposede   secomposede[]
+
+  @@map("_commandefournisseur")
+}
+
+model commune {
+  codecommune        String               @db.VarChar(5)
+  nomcommune         String               @db.VarChar(200)
+  codepostal         String               @db.Char(5)
+  client             client[]
+  entitegestionnaire entitegestionnaire[]
+  site               site[]
+
+  @@id([codecommune, codepostal])
+  @@index([codecommune], map: "_commune__index_codecommune")
+  @@index([codepostal], map: "_commune__index_codepostal")
+  @@index([nomcommune], map: "_commune__index_nomcommune")
+  @@map("_commune")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model compteur {
+  idcompteur         String               @id @db.VarChar(50)
+  usage              String?              @db.VarChar(50)
+  coefmulti          Float
+  idressource        Int?
+  estsouscompteur    Boolean              @default(false)
+  puissancesouscrite Int?
+  iddistributeur     Int
+  idcontrat          Int
+  asset              Json?                @db.Json
+  nomvoie            String               @db.VarChar(200)
+  estprive           Boolean              @default(false)
+  intitule           String?              @db.VarChar(60)
+  estresilie         Boolean              @default(false)
+  alimente           alimente[]
+  contrat            contrat              @relation(fields: [idcontrat], references: [idcontrat], onDelete: Cascade, map: "_compteur__contrat_idcontrat_fk")
+  distributeur       distributeur         @relation(fields: [iddistributeur], references: [iddistributeur], onDelete: Cascade)
+  ressourcemesure    ressourcemesure?     @relation(fields: [idressource], references: [idressource], onDelete: Cascade)
+  consommation       consommation[]
+  encadre            encadre[]
+  historiquecompteur historiquecompteur[]
+  intervention       intervention[]
+  mandatcompteur     mandatcompteur[]
+  reparti            reparti[]
+
+  @@index([idcompteur], map: "_compteur__index_idcompteur")
+  @@index([nomvoie], map: "_compteur__index_nomvoie")
+  @@index([usage], map: "_compteur__index_usage")
+  @@map("_compteur")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model consommation {
+  idcompteur      String   @db.VarChar(50)
+  annee           Int
+  totalanneeconso Float
+  nbmois          Int      @default(12)
+  compteur        compteur @relation(fields: [idcompteur], references: [idcompteur], onDelete: Cascade)
+
+  @@id([idcompteur, annee])
+  @@map("_consommation")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model contrat {
+  idcontrat     Int         @id @default(dbgenerated("nextval('_contrat_idcontrat_seq'::regclass)"))
+  typecontrat   String      @db.VarChar(2)
+  datedebut     DateTime    @db.Timestamp(6)
+  datefin       DateTime?   @db.Timestamp(6)
+  idfournisseur Int
+  compteur      compteur[]
+  fournisseur   fournisseur @relation(fields: [idfournisseur], references: [idfournisseur], onDelete: Cascade)
+
+  @@map("_contrat")
+}
+
+model couvre {
+  idsite                                            String        @db.VarChar(80)
+  codecadastral                                     String        @db.Char(11)
+  codecadastral_couvre_codecadastralTocodecadastral codecadastral @relation("couvre_codecadastralTocodecadastral", fields: [codecadastral], references: [codecadastral], onDelete: Cascade)
+  site                                              site          @relation(fields: [idsite], references: [idsite], onDelete: Cascade)
+
+  @@id([idsite, codecadastral])
+  @@index([idsite], map: "_couvre__index_idsite")
+  @@map("_couvre")
+}
+
+model declaoperat {
+  identitelocale      String                @db.Char(5)
+  iddeclaoperat       String                @id(map: "_declaoperat_pk") @db.VarChar(50)
+  complementnomefa    String?               @db.VarChar(100)
+  adresseefa          String?               @db.VarChar(100)
+  client              client                @relation(fields: [identitelocale], references: [identitelocale], onDelete: NoAction, onUpdate: NoAction, map: "_declaoperat_fk_client")
+  declarationannuelle declarationannuelle[]
+  declare             declare[]
+
+  @@map("_declaoperat")
+}
+
+model declarationannuelle {
+  iddeclarationoperat Int         @id(map: "_declarationoperat_pkey") @default(dbgenerated("nextval('_declarationoperat_iddeclarationoperat_seq'::regclass)"))
+  identitelocale      String      @db.Char(5)
+  refoperatefa        String      @db.VarChar(50)
+  anneedeclaration    String      @db.VarChar(9)
+  datedeclaration     DateTime?   @default(now()) @db.Timestamp(6)
+  declaoperat         declaoperat @relation(fields: [refoperatefa], references: [iddeclaoperat], onDelete: NoAction, onUpdate: NoAction, map: "_declarationannuelle_fk_declaoperat")
+  client              client      @relation(fields: [identitelocale], references: [identitelocale], onDelete: NoAction, onUpdate: NoAction, map: "_declarationoperat_fk_client")
+
+  @@map("_declarationannuelle")
+}
+
+model declare {
+  iddeclaoperat String      @db.VarChar(50)
+  idlot         String      @db.VarChar(80)
+  lot           lot         @relation(fields: [idlot], references: [idlot], onDelete: Cascade, map: "_declare__lot_idlot_fk")
+  declaoperat   declaoperat @relation(fields: [iddeclaoperat], references: [iddeclaoperat], onDelete: NoAction, onUpdate: NoAction, map: "_declare_fk_declaoperat")
+
+  @@id([iddeclaoperat, idlot], map: "_declare_pk")
+  @@map("_declare")
+}
+
+model distributeur {
+  iddistributeur  Int        @id @default(dbgenerated("nextval('_distributeur_iddistributeur_seq'::regclass)"))
+  nomdistributeur String     @db.VarChar(100)
+  compteur        compteur[]
+
+  @@map("_distributeur")
+}
+
+model elements {
+  idelement   Int           @id @default(dbgenerated("nextval('_elements_idelement_seq'::regclass)"))
+  nomelement  String        @db.VarChar(100)
+  modele      String        @db.VarChar(50)
+  description String?       @db.VarChar(200)
+  capteur     capteur[]
+  secomposede secomposede[]
+
+  @@map("_elements")
+}
+
+model emission {
+  idemission        Int                @id @default(dbgenerated("nextval('_emission_idemission_seq'::regclass)"))
+  frequencemesure   Int
+  frequenceemission Int
+  reglage           reglage[]
+  reglagepardefaut  reglagepardefaut[]
+
+  @@map("_emission")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model encadre {
+  idencadre                                        Int       @id(map: "_encadre2_pkey") @default(dbgenerated("nextval('_encadre2_idencadre_seq'::regclass)"))
+  idnoeux                                          String    @db.VarChar(50)
+  identitelocalereceveur                           String    @db.VarChar(50)
+  idcompteurfournisseur                            String?   @db.VarChar(50)
+  identitelocalefournisseur                        String?   @db.VarChar(50)
+  compteur                                         compteur? @relation(fields: [idcompteurfournisseur], references: [idcompteur], onDelete: Cascade, map: "_encadre2_idcompteurfournisseur_fkey")
+  client_encadre_identitelocalefournisseurToclient client?   @relation("encadre_identitelocalefournisseurToclient", fields: [identitelocalefournisseur], references: [identitelocale], onDelete: Cascade, map: "_encadre2_identitelocalefournisseur_fkey")
+  client_encadre_identitelocalereceveurToclient    client    @relation("encadre_identitelocalereceveurToclient", fields: [identitelocalereceveur], references: [identitelocale], onDelete: Cascade, map: "_encadre2_identitelocalereceveur_fkey")
+
+  @@map("_encadre")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model entitegestionnaire {
+  idgestionnaire  String            @id @db.Char(5)
+  type            String            @db.VarChar(20)
+  denomination    String            @db.VarChar(200)
+  siren           String            @db.Char(9)
+  siret           String            @db.Char(14)
+  nomvoie         String            @db.VarChar(200)
+  cmpltadresse    String?           @db.VarChar(200)
+  codecommune     String            @db.VarChar(5)
+  codepostal      String            @db.Char(5)
+  client          client[]
+  commune         commune           @relation(fields: [codecommune, codepostal], references: [codecommune, codepostal], onDelete: Cascade, map: "_entitegestionnaire__commune_codecommune_codepostal_fk")
+  estdelegue      estdelegue[]
+  historiquesiret historiquesiret[]
+
+  @@map("_entitegestionnaire")
+}
+
+model entree {
+  identree String @id @db.VarChar(80)
+  idpiece  String @db.VarChar(80)
+  asset    Json?  @db.Json
+  nom      String @db.VarChar(80)
+  piece    piece  @relation(fields: [idpiece], references: [idpiece], onDelete: Cascade)
+
+  @@map("_entree")
+}
+
+model estdelegue {
+  idgestionnaire     String             @db.Char(5)
+  idlot              String             @db.VarChar(80)
+  entitegestionnaire entitegestionnaire @relation(fields: [idgestionnaire], references: [idgestionnaire], onDelete: Cascade, map: "_estdeleguer_idgestionnaire_fkey")
+  lot                lot                @relation(fields: [idlot], references: [idlot], onDelete: Cascade, map: "_estdeleguer_numlot_idbat_fkey")
+
+  @@id([idlot, idgestionnaire], map: "_estdeleguer_pkey")
+  @@map("_estdelegue")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model estlie {
+  deveuicapteur    String     @db.VarChar(64)
+  deveuipasserelle String     @db.VarChar(64)
+  datedebutliaison DateTime   @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  datefinliaison   DateTime?  @db.Timestamp(6)
+  capteur          capteur    @relation(fields: [deveuicapteur], references: [deveui], onDelete: Cascade)
+  passerelle       passerelle @relation(fields: [deveuipasserelle], references: [deveui], onDelete: Cascade)
+
+  @@id([deveuicapteur, deveuipasserelle, datedebutliaison])
+  @@map("_estlie")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model factureprestation {
+  idfacture          String   @id(map: "_factureprestation_pk") @db.VarChar(20)
+  identitelocale     String   @db.Char(5)
+  datefacturation    DateTime @db.Timestamp(6)
+  descriptionfacture String?  @db.VarChar(100)
+  etat               String   @default("non-paye") @db.VarChar(9)
+  chemins3           String?  @db.VarChar(255)
+  item               item[]
+
+  @@map("_factureprestation")
+}
+
+model fournisseur {
+  idfournisseur  Int       @id @default(dbgenerated("nextval('_fournisseur_idfournisseur_seq'::regclass)"))
+  nomfournisseur String    @db.VarChar(100)
+  contrat        contrat[]
+
+  @@map("_fournisseur")
+}
+
+model gerebat {
+  idpersonne String   @db.VarChar(50)
+  idbat      String   @db.VarChar(80)
+  personne   personne @relation(fields: [idpersonne], references: [idpersonne], onDelete: Cascade, map: "_gerebat__personne_idpersonne_fk")
+  batiment   batiment @relation(fields: [idbat], references: [idbat], onDelete: Cascade)
+
+  @@id([idpersonne, idbat])
+  @@map("_gerebat")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model gereclient {
+  identitelocale String    @db.Char(5)
+  idpersonne     String    @db.VarChar(80)
+  datedebut      DateTime  @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  datefin        DateTime? @db.Timestamp(6)
+  client         client    @relation(fields: [identitelocale], references: [identitelocale], onDelete: Cascade)
+  personne       personne  @relation(fields: [idpersonne], references: [idpersonne], onDelete: Cascade)
+
+  @@id([idpersonne, identitelocale])
+  @@map("_gereclient")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model historiquecompteur {
+  idcompteur String    @db.VarChar(50)
+  datedebut  DateTime  @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  datefin    DateTime? @default(now()) @db.Timestamp(6)
+  coefmulti  Float
+  compteur   compteur  @relation(fields: [idcompteur], references: [idcompteur], onDelete: Cascade)
+
+  @@id([idcompteur, datedebut])
+  @@map("_historiquecompteur")
+}
+
+model historiqueetat {
+  identitelocale String   @db.Char(5)
+  datechangement DateTime @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Paris'::text)")) @db.Timestamp(6)
+  ancienetat     String   @db.VarChar(25)
+  nouveauetat    String   @db.VarChar(25)
+  client         client   @relation(fields: [identitelocale], references: [identitelocale], onDelete: NoAction)
+
+  @@id([identitelocale, datechangement])
+  @@map("_historiqueetat")
+}
+
+model historiquelot {
+  numlot                                               String   @db.VarChar(15)
+  idbat                                                String   @db.VarChar(80)
+  typeexploitation                                     String   @db.VarChar(30)
+  identitelocaleproprio                                String   @db.Char(5)
+  identitelocalelocataire                              String   @db.Char(5)
+  qualiteassujettie                                    String   @db.VarChar(25)
+  typelot                                              String   @db.VarChar(30)
+  datefin                                              DateTime @db.Timestamp(6)
+  idlot                                                String   @db.VarChar(80)
+  client_historiquelot_identitelocalelocataireToclient client   @relation("historiquelot_identitelocalelocataireToclient", fields: [identitelocalelocataire], references: [identitelocale], onDelete: NoAction)
+  client_historiquelot_identitelocaleproprioToclient   client   @relation("historiquelot_identitelocaleproprioToclient", fields: [identitelocaleproprio], references: [identitelocale], onDelete: NoAction)
+
+  @@id([numlot, idbat, identitelocaleproprio, datefin, idlot])
+  @@map("_historiquelot")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model historiquesiret {
+  identitelocale     String?             @db.Char(5)
+  idgestionnaire     String?             @db.Char(5)
+  anciensiret        String              @db.Char(14)
+  datechangement     DateTime            @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  idchangement       Int                 @id(map: "_historiquesiret_pk") @default(dbgenerated("nextval('_historiquesiret_idchangement_seq'::regclass)"))
+  client             client?             @relation(fields: [identitelocale], references: [identitelocale], onDelete: Cascade)
+  entitegestionnaire entitegestionnaire? @relation(fields: [idgestionnaire], references: [idgestionnaire], onDelete: Cascade)
+
+  @@map("_historiquesiret")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model infosrie {
+  identitelocale      String    @db.Char(5)
+  numassocation       BigInt?
+  annee               Int
+  nbrepas             Int?
+  nbjourouvert        Int?
+  horaireclientdebut  DateTime? @db.Time(6)
+  horaireclientfin    DateTime? @db.Time(6)
+  horairetravaildebut DateTime? @db.Time(6)
+  horairetravailfin   DateTime? @db.Time(6)
+  semainesouvrees     Int?
+  nbjourouverture     Int?
+  client              client    @relation(fields: [identitelocale], references: [identitelocale], onDelete: Cascade)
+
+  @@id([identitelocale, annee])
+  @@index([identitelocale], map: "_infosrie__index_identitelocale")
+  @@index([numassocation], map: "_infosrie__index_numassociation")
+  @@map("_infosrie")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model intervention {
+  deveui           String?           @db.VarChar(64)
+  description      String?           @db.VarChar(200)
+  dateintervention DateTime          @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  typeintervention String            @db.VarChar(20)
+  idcompteur       String?           @db.VarChar(50)
+  idpiece          String?           @db.VarChar(80)
+  etalonnage       Float?
+  estactive        Boolean           @default(false)
+  asset            Json?             @db.Json
+  idintervention   Int               @id @default(dbgenerated("nextval('_intervention_id_seq'::regclass)"))
+  idbat            String?           @db.VarChar(80)
+  deveuip          String?           @db.VarChar(64)
+  batiment         batiment?         @relation(fields: [idbat], references: [idbat], onDelete: Cascade, map: "_intervention__batiment_fk")
+  capteur          capteur?          @relation(fields: [deveui], references: [deveui], onDelete: Cascade, map: "_intervention__capteur_deveui_fk")
+  passerelle       passerelle?       @relation(fields: [deveuip], references: [deveui], onDelete: NoAction, onUpdate: NoAction, map: "_intervention__passerelle_deveui_fk")
+  compteur         compteur?         @relation(fields: [idcompteur], references: [idcompteur], onDelete: Cascade)
+  piece            piece?            @relation(fields: [idpiece], references: [idpiece], onDelete: Cascade)
+  periodeinvalide  periodeinvalide[]
+
+  @@index([dateintervention], map: "_intervention__index_dateintervention")
+  @@index([deveui], map: "_intervention__index_deveui")
+  @@index([idcompteur], map: "_intervention__index_idcompteur")
+  @@index([idpiece], map: "_intervention__index_idpiece")
+  @@map("_intervention")
+}
+
+model item {
+  idprestation        String              @db.Char(7)
+  nbprestation        Int                 @default(1)
+  idfacture           String              @db.VarChar(20)
+  catalogueprestation catalogueprestation @relation(fields: [idprestation], references: [idprestation], onDelete: Cascade, map: "_idprestation-fk_item")
+  factureprestation   factureprestation   @relation(fields: [idfacture], references: [idfacture], onDelete: Cascade, map: "idprestation___fk_facture")
+
+  @@id([idfacture, idprestation], map: "_item_pk")
+  @@map("_item")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model lot {
+  numlot                                   String          @db.VarChar(15)
+  idbat                                    String          @db.VarChar(80)
+  typeexploitation                         String          @db.VarChar(30)
+  identitelocaleproprio                    String?         @db.Char(5)
+  identitelocale                           String?         @db.Char(5)
+  qualiteassujettie                        String          @db.VarChar(25)
+  typelot                                  String          @db.VarChar(30)
+  idlot                                    String          @unique(map: "unique_id_lot") @db.VarChar(80)
+  declare                                  declare[]
+  estdelegue                               estdelegue[]
+  client_lot_identitelocaleproprioToclient client?         @relation("lot_identitelocaleproprioToclient", fields: [identitelocaleproprio], references: [identitelocale], onDelete: Cascade, map: "_lot__client_identitelocale_fk")
+  batiment                                 batiment        @relation(fields: [idbat], references: [idbat], onDelete: Cascade)
+  client_lot_identitelocaleToclient        client?         @relation("lot_identitelocaleToclient", fields: [identitelocale], references: [identitelocale], onDelete: Cascade, map: "_lot_identitelocalesdc_fkey")
+  piece_piece_idlotTolot                   piece[]         @relation("piece_idlotTolot")
+  piece_piece_numlot_idbatTolot            piece[]         @relation("piece_numlot_idbatTolot")
+  pieceavalider                            pieceavalider[]
+  repartition                              repartition[]
+
+  @@id([numlot, idbat])
+  @@index([idbat], map: "_lot__index_idbat")
+  @@index([identitelocaleproprio], map: "_lot__index_identitelocaleproprio")
+  @@index([identitelocale], map: "_lot__index_identitelocalesdc")
+  @@map("_lot")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model mandat {
+  idmandat       Int
+  identitelocale String           @db.Char(5)
+  typemandat     String           @db.VarChar(20)
+  datesignee     DateTime         @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  chemindanss3   String?          @db.VarChar(255)
+  datefin        DateTime?        @db.Timestamp(6)
+  client         client           @relation(fields: [identitelocale], references: [identitelocale], onDelete: Cascade)
+  mandatcompteur mandatcompteur[]
+
+  @@id([idmandat, identitelocale])
+  @@map("_mandat")
+}
+
+model mandatcompteur {
+  idmandat       Int
+  identitelocale String   @db.Char(5)
+  idcompteur     String   @db.VarChar(50)
+  compteur       compteur @relation(fields: [idcompteur], references: [idcompteur], onDelete: NoAction)
+  mandat         mandat   @relation(fields: [idmandat, identitelocale], references: [idmandat, identitelocale], onDelete: NoAction)
+
+  @@id([idmandat, identitelocale, idcompteur])
+  @@map("_mandatcompteur")
+}
+
+model marque {
+  nommarque           String                @id @db.VarChar(25)
+  appeui              String?               @db.Char(16)
+  commandefournisseur commandefournisseur[]
+  modele              modele[]
+
+  @@map("_marque")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model modele {
+  nommodele            String             @db.VarChar(200)
+  referencefournisseur String             @db.VarChar(200)
+  referenceinterne     String             @id @unique(map: "unique_referenceinterne") @db.VarChar(50)
+  nommarque            String             @db.VarChar(25)
+  idbatterie           String             @db.VarChar(64)
+  tempmin              Float
+  tempmax              Float
+  classe               String?            @db.VarChar(1)
+  protocole            String?            @db.VarChar(60)
+  ressourcessoudees    Boolean            @default(false)
+  regule               Boolean            @default(false)
+  nbpiles              Int
+  nomchirpstack        String             @db.VarChar
+  capteur              capteur[]
+  batterie             batterie           @relation(fields: [idbatterie], references: [idbatterie], onDelete: Cascade)
+  marque               marque             @relation(fields: [nommarque], references: [nommarque], onDelete: Cascade)
+  passerelle           passerelle[]
+  reglagepardefaut     reglagepardefaut[]
+  releve               releve[]
+  secomposede          secomposede[]
+
+  @@map("_modele")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model observationdeet {
+  identitelocale String @db.Char(5)
+  annee          Int
+  observation    String
+  client         client @relation(fields: [identitelocale], references: [identitelocale], onDelete: NoAction)
+
+  @@id([identitelocale, annee])
+  @@map("_observationdeet")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model passerelle {
+  deveui              String               @id @db.VarChar(64)
+  datearrivee         DateTime             @db.Timestamp(6)
+  idcommande          String?              @db.VarChar(16)
+  esthorsservice      Boolean              @default(false)
+  etat                String               @default("FONCTIONNEL") @db.VarChar(15)
+  referenceinterne    String?              @db.VarChar(50)
+  estlie              estlie[]
+  intervention        intervention[]
+  commandefournisseur commandefournisseur? @relation(fields: [idcommande], references: [idfacture], onDelete: Cascade)
+  modele              modele?              @relation(fields: [referenceinterne], references: [referenceinterne], onDelete: Cascade)
+
+  @@map("_passerelle")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model periodeinvalide {
+  idintervention Int
+  datedebut      DateTime     @db.Timestamp(6)
+  datefin        DateTime?    @db.Timestamp(6)
+  intervention   intervention @relation(fields: [idintervention], references: [idintervention], onDelete: NoAction, onUpdate: NoAction, map: "_periodeinvalide___fk_intervention")
+
+  @@id([idintervention, datedebut], map: "_periodeinvalide_pk")
+  @@map("_periodeinvalide")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model personne {
+  prenom     String       @db.VarChar(50)
+  nom        String       @db.VarChar(50)
+  mail       String?      @db.VarChar(50)
+  tel        String?      @db.VarChar(15)
+  datedebut  DateTime     @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  datefin    DateTime?    @db.Timestamp(6)
+  societe    String?      @db.VarChar(50)
+  fonction   String       @db.VarChar(50)
+  idpersonne String       @id @db.VarChar(80)
+  gerebat    gerebat[]
+  gereclient gereclient[]
+
+  @@map("_personne")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model piece {
+  idpiece                     String                  @id @db.VarChar(80)
+  idbat                       String                  @db.VarChar(200)
+  nompiece                    String                  @db.VarChar(100)
+  nomgenerique                String?                 @db.VarChar(50)
+  surface                     Float?
+  codescap                    String                  @db.VarChar(10)
+  exterieure                  Boolean                 @default(false)
+  numlot                      String                  @db.VarChar(30)
+  asset                       Json?                   @db.Json
+  identitelocalelocataire     String?                 @db.Char(5)
+  chauffageoperat             Boolean                 @default(false)
+  refroidissementoperat       Boolean                 @default(false)
+  logistiquefroidoperat       Boolean                 @default(false)
+  froidcommercialoperat       Boolean                 @default(false)
+  conservationoperat          Boolean                 @default(false)
+  etage                       Int?
+  piecesspeciales             String?                 @db.VarChar(30)
+  esthistorise                Boolean                 @default(false)
+  idlot                       String                  @db.VarChar(80)
+  alimente                    alimente[]
+  entree                      entree[]
+  intervention                intervention[]
+  lot_piece_idlotTolot        lot                     @relation("piece_idlotTolot", fields: [idlot], references: [idlot], onDelete: Cascade, map: "_piece__lot_idlot_fk")
+  lot_piece_numlot_idbatTolot lot                     @relation("piece_numlot_idbatTolot", fields: [numlot, idbat], references: [numlot, idbat], onDelete: Cascade, map: "_piece__lot_numlot_idbat_fk")
+  scap                        scap                    @relation(fields: [codescap], references: [codescap], onDelete: Cascade, map: "_piece__scap_codescap_fk")
+  client                      client?                 @relation(fields: [identitelocalelocataire], references: [identitelocale], onDelete: Cascade)
+  piecesriesalleamanger       piecesriesalleamanger[]
+  piecesrietemp               piecesrietemp?
+
+  @@index([idbat], map: "_piece__index_idbat")
+  @@index([idpiece], map: "_piece__index_idpiece")
+  @@index([identitelocalelocataire], map: "_piece__index_locataire")
+  @@index([numlot], map: "_piece__index_lot")
+  @@index([nompiece], map: "_piece__index_nompiece")
+  @@map("_piece")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model pieceavalider {
+  idpieceavalider Int     @id @default(dbgenerated("nextval('_pieceavalider_idpieceavalider_seq'::regclass)"))
+  nomgenerique    String  @db.VarChar(100)
+  surface         Float
+  exterieure      Boolean @default(false)
+  etage           Int
+  codescap        String  @db.VarChar(10)
+  numlot          String  @db.VarChar(30)
+  idbat           String  @db.VarChar(80)
+  asset           Json?   @db.Json
+  piecesspeciales String? @db.VarChar(30)
+  scap            scap    @relation(fields: [codescap], references: [codescap], onDelete: Cascade)
+  lot             lot     @relation(fields: [numlot, idbat], references: [numlot, idbat], onDelete: Cascade)
+
+  @@unique([nomgenerique, idbat])
+  @@map("_pieceavalider")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model piecesriesalleamanger {
+  idpiece String @db.VarChar(80)
+  nbplace Int    @default(-1)
+  annee   Int
+  piece   piece  @relation(fields: [idpiece], references: [idpiece], onDelete: Cascade)
+
+  @@id([idpiece, annee])
+  @@map("_piecesriesalleamanger")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model piecesrietemp {
+  idpiece     String @id @db.VarChar(80)
+  typefroid   String @db.VarChar(7)
+  temperature String @db.VarChar(10)
+  piece       piece  @relation(fields: [idpiece], references: [idpiece], onDelete: Cascade)
+
+  @@map("_piecesrietemp")
+}
+
+model reglage {
+  idressource      Int
+  numressource     Int
+  idemission       Int
+  deveui           String   @db.VarChar(16)
+  datedebut        DateTime @default(dbgenerated("timezone('Europe/Paris'::text, CURRENT_TIMESTAMP)")) @db.Timestamp(6)
+  referenceinterne String   @db.VarChar(50)
+  capteur          capteur  @relation(fields: [deveui], references: [deveui], onDelete: Cascade)
+  emission         emission @relation(fields: [idemission], references: [idemission], onDelete: Cascade)
+  releve           releve   @relation(fields: [referenceinterne, idressource, numressource], references: [referenceinterne, idressource, numressource], onDelete: Cascade)
+
+  @@id([referenceinterne, idressource, numressource, idemission, deveui, datedebut])
+  @@index([datedebut], map: "_reglage__index_datedebut")
+  @@index([deveui], map: "_reglage__index_deveui")
+  @@map("_reglage")
+}
+
+model reglagepardefaut {
+  idressource      Int
+  idemission       Int
+  referenceinterne String          @db.VarChar(50)
+  emission         emission        @relation(fields: [idemission], references: [idemission], onDelete: Cascade)
+  ressourcemesure  ressourcemesure @relation(fields: [idressource], references: [idressource], onDelete: Cascade)
+  modele           modele          @relation(fields: [referenceinterne], references: [referenceinterne], onDelete: Cascade)
+
+  @@id([referenceinterne, idressource, idemission])
+  @@map("_reglagepardefaut")
+}
+
+model releve {
+  idressource      Int
+  numressource     Int             @default(1)
+  referenceinterne String          @db.VarChar(50)
+  reglage          reglage[]
+  ressourcemesure  ressourcemesure @relation(fields: [idressource], references: [idressource], onDelete: Cascade)
+  modele           modele          @relation(fields: [referenceinterne], references: [referenceinterne], onDelete: Cascade)
+
+  @@id([referenceinterne, idressource, numressource])
+  @@map("_releve")
+}
+
+model reparti {
+  idcharge   Int
+  idcompteur String   @db.VarChar(50)
+  charge     charge   @relation(fields: [idcharge], references: [idcharge], onDelete: Cascade)
+  compteur   compteur @relation(fields: [idcompteur], references: [idcompteur], onDelete: Cascade)
+
+  @@id([idcharge, idcompteur])
+  @@map("_reparti")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model repartition {
+  idcharge    Int
+  numlot      String   @db.VarChar(15)
+  tantiemelot Float
+  idbat       String   @db.VarChar(200)
+  idlot       String   @db.VarChar(80)
+  batiment    batiment @relation(fields: [idbat], references: [idbat], onDelete: Cascade, map: "_repartition__batiment_idbat_fk")
+  charge      charge   @relation(fields: [idcharge], references: [idcharge], onDelete: Cascade, map: "_repartition__charge_idcharge_fk")
+  lot         lot      @relation(fields: [idlot], references: [idlot], onDelete: Cascade, map: "_repartition__lot_idlot_fk")
+
+  @@id([idlot, idcharge])
+  @@index([idbat], map: "_repartition__index_idbat")
+  @@index([numlot], map: "_repartition__index_numlot")
+  @@map("_repartition")
+}
+
+model ressourcemesure {
+  idressource      Int                @id @default(dbgenerated("nextval('_ressourcemesure_idressource_seq'::regclass)"))
+  nomressource     String             @db.VarChar(80)
+  unite            String             @db.VarChar(20)
+  estenergie       Boolean
+  nomclassegts     String?            @db.VarChar(50)
+  compteur         compteur[]
+  reglagepardefaut reglagepardefaut[]
+  releve           releve[]
+
+  @@map("_ressourcemesure")
+}
+
+model scap {
+  codescap      String          @id @db.VarChar(10)
+  nomscap       String          @db.VarChar(300)
+  codeactivite  String          @db.VarChar
+  cabs          cabs[]
+  piece         piece[]
+  pieceavalider pieceavalider[]
+  cap           cap             @relation(fields: [codeactivite], references: [codeactivite], onDelete: Cascade)
+
+  @@map("_scap")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model secomposede {
+  idcompo             Int                 @id @default(dbgenerated("nextval('_secomposede_idcompo_seq'::regclass)"))
+  idfacture           String              @db.VarChar(16)
+  prixunitaire_HT     Float
+  nbunites            Int                 @default(1)
+  idbatterie          String?             @db.VarChar(64)
+  idelement           Int?
+  referenceinterne    String?             @db.VarChar(50)
+  batterie            batterie?           @relation(fields: [idbatterie], references: [idbatterie], onDelete: NoAction, map: "_secomposede_batterie_idbatterie_fk")
+  elements            elements?           @relation(fields: [idelement], references: [idelement], onDelete: NoAction, map: "_secomposede_elements_idelement_fk")
+  commandefournisseur commandefournisseur @relation(fields: [idfacture], references: [idfacture], onDelete: Cascade, map: "_secomposede_idcommande_fkey")
+  modele              modele?             @relation(fields: [referenceinterne], references: [referenceinterne], onDelete: Cascade)
+
+  @@map("_secomposede")
+}
+
+model site {
+  idsite              String              @id @db.VarChar(80)
+  nomsite             String              @db.VarChar(100)
+  codecommune         String              @db.VarChar(5)
+  codestation         String              @db.Char(8)
+  departement         String              @db.VarChar(3)
+  codepostal          String              @db.Char(5)
+  codefacturation     String?             @db.VarChar(80)
+  batiment            batiment[]
+  couvre              couvre[]
+  commune             commune             @relation(fields: [codecommune, codepostal], references: [codecommune, codepostal], onDelete: Cascade, map: "_site__commune_codecommune_codepostal_fk")
+  situationclimatique situationclimatique @relation(fields: [codestation, departement], references: [codestation, departement], onDelete: Cascade, map: "_site__situationclimatique_codestation_departement_fk")
+
+  @@index([codepostal], map: "_site__index_codepostal")
+  @@index([departement], map: "_site__index_departement")
+  @@index([idsite], map: "_site__index_idsite")
+  @@index([nomsite], map: "_site__index_nomsite")
+  @@map("_site")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model situationclimatique {
+  codestation    String @db.VarChar(8)
+  nomstation     String @db.VarChar(100)
+  zoneclimatique String @db.VarChar(20)
+  altitude       Float
+  departement    String @db.VarChar(3)
+  site           site[]
+
+  @@id([codestation, departement])
+  @@map("_situationclimatique")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spicedb_relations {
+  id            BigInt    @id @default(dbgenerated("nextval('_spicedb_relations_id_seq'::regclass)"))
+  action        String
+  resource_type String
+  resource_id   String
+  relation      String
+  subject_type  String
+  subject_id    String
+  processed     Boolean?  @default(false)
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("_spicedb_relations")
+}
+
+model adonis_schema {
+  id             Int       @id @default(autoincrement())
+  name           String    @db.VarChar(255)
+  batch          Int
+  migration_time DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model adonis_schema_versions {
+  version Int @id
+}
+
+model infoformulaire {
+  id              String   @id(map: "_infoformulaire_pk")
+  identitelocale  String?  @db.Char(5)
+  statut          String   @db.VarChar(50)
+  datepublication DateTime @default(dbgenerated("(CURRENT_TIMESTAMP AT TIME ZONE 'Europe/Paris'::text)")) @db.Timestamp(6)
+  reponse         Json?    @db.Json
+  client          client?  @relation(fields: [identitelocale], references: [identitelocale], onDelete: Cascade, map: "_infoformulaire__client_identitelocale_fk")
+
+  @@map("_infoformulaire")
+}
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_access {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_activity {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_collections {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_comments {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_dashboards {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_deployment_projects {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_deployment_runs {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_deployments {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_extensions {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_fields {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_files {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_flows {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_folders {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_migrations {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_notifications {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_operations {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_panels {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_permissions {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_policies {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_presets {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_relations {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_revisions {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_roles {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_sessions {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_settings {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_shares {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_translations {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_users {
+// }
+
+/// We could not retrieve columns for the underlying table. Either it has none or you are missing rights to see them. Please check your privileges.
+// model directus_versions {
+// }
+
+view bacs {
+  idbat            String? @db.VarChar(80)
+  nombat           String? @db.VarChar(100)
+  surface_totale   String? @db.VarChar
+  puissance_totale BigInt?
+  bacs             Int?
+}
+
+view public_batiment {
+  idbat                       String?   @db.VarChar(80)
+  nombat                      String?   @db.VarChar(100)
+  nomvoie                     String?   @db.VarChar(200)
+  codepostal                  String?   @db.Char(5)
+  nomcommune                  String?   @db.VarChar(200)
+  cmpltadresse                String?   @db.VarChar(200)
+  longitude                   Float?
+  latitude                    Float?
+  idsite                      String?   @db.VarChar(80)
+  nomsite                     String?   @db.VarChar(100)
+  anneecref                   Int?
+  total_consommation_batiment Float?
+  idsmplr                     String?   @db.VarChar(50)
+  datecreauib                 DateTime? @db.Timestamp(6)
+  mixte                       Boolean?
+  surface_totale              String?   @db.VarChar
+
+  @@map("batiment")
+}
+
+view public_capteur {
+  nommarque        String?  @db.VarChar(25)
+  referenceinterne String?  @db.VarChar(50)
+  nommodele        String?  @db.VarChar(200)
+  nomchirpstack    String?  @db.VarChar
+  deveui           String?  @db.VarChar(16)
+  en_stock         String?
+  esthorsservice   Boolean?
+
+  @@map("capteur")
+}
+
+view public_compteur {
+  idsite             String?   @db.VarChar(80)
+  nomsite            String?   @db.VarChar(100)
+  idbat              String?   @db.VarChar(80)
+  nombat             String?   @db.VarChar(100)
+  idcompteur         String?   @db.VarChar(50)
+  intitule           String?   @db.VarChar(60)
+  datedebut          DateTime? @db.Timestamp(6)
+  datefin            DateTime? @db.Timestamp(6)
+  coefmulti          Float?
+  usage              String?   @db.VarChar(50)
+  estsouscompteur    Boolean?
+  idressource        Int?
+  nomressource       String?   @db.VarChar(80)
+  puissancesouscrite Int?
+  iddistributeur     Int?
+  nomdistributeur    String?   @db.VarChar(100)
+  nomvoie            String?   @db.VarChar(200)
+
+  @@map("compteur")
+}
+
+view deveuiintervention {
+  deveui           String?   @db.VarChar(64)
+  dateintervention DateTime? @db.Timestamp(6)
+  typeintervention String?   @db.VarChar(20)
+  table            String?
+  id               String?   @db.VarChar
+  nommodele        String?   @db.VarChar(200)
+  idressource      Int?
+  nomressource     String?   @db.VarChar(80)
+  unite            String?   @db.VarChar(20)
+  etalonnage       Float?
+  asset            Json?     @db.Json
+}
+
+view immo_capteurs {
+  idintervention       Int?
+  nommarque            String?   @db.VarChar(25)
+  nommodele            String?   @db.VarChar(200)
+  referencefournisseur String?   @db.VarChar(200)
+  deveui               String?   @db.VarChar
+  idpiece              String?   @db.VarChar
+  idcompteur           String?   @db.VarChar
+  idsite               String?   @db.VarChar
+  nom_site             String?   @db.VarChar
+  hs                   Boolean?
+  idlocale             String?   @db.Char
+  id                   String?   @db.VarChar
+  denomination         String?   @db.VarChar
+  nomvoie              String?   @db.VarChar
+  code_postal          String?   @db.Char
+  ville                String?   @db.VarChar
+  datearrivee          DateTime? @db.Timestamp(6)
+  statut               String?
+}
+
+view public_piece {
+  idpiece               String?  @db.VarChar(80)
+  idbat                 String?  @db.VarChar(200)
+  nombat                String?  @db.VarChar(100)
+  nompiece              String?  @db.VarChar(100)
+  nomgenerique          String?  @db.VarChar(50)
+  surface               Float?
+  codescap              String?  @db.VarChar(10)
+  exterieure            Boolean?
+  numlot                String?  @db.VarChar(30)
+  asset                 Json?    @db.Json
+  locatairepiece        String?  @db.Char(5)
+  identitelocataire     String?  @db.VarChar(50)
+  nomlocataire          String?  @db.VarChar(100)
+  chauffageoperat       Boolean?
+  refroidissementoperat Boolean?
+  logistiquefroidoperat Boolean?
+  froidcommercialoperat Boolean?
+  conservationoperat    Boolean?
+  etage                 Int?
+  typeexploitation      String?  @db.VarChar(30)
+  propriolot            String?  @db.Char(5)
+  identiteproprio       String?  @db.VarChar(50)
+  nomproprio            String?  @db.VarChar(100)
+  faitpartiede          String?  @db.Char(5)
+  identite              String?  @db.VarChar(50)
+  denomination          String?  @db.VarChar(100)
+  qualiteassujettie     String?  @db.VarChar(25)
+  typelot               String?  @db.VarChar(30)
+
+  @@map("piece")
+}
